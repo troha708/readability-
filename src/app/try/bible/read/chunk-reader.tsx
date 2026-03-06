@@ -198,7 +198,7 @@ export function ChunkReader({
                 : "text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
             }`}
           >
-            <span className="text-sm">B</span>
+            <span className="text-sm">Bionic Reading</span>
           </button>
 
           {/* Version picker */}
