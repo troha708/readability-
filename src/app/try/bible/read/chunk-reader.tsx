@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-
+import {
+  getReadingMode,
+  markChapterComplete,
+  setReadingMode,
+  type ReadingMode,
+} from "@/lib/reading-progress";
 import { FormattedChunkText } from "./format-chunk-text";
 
 type VersionInfo = { abbr: string; name: string };
@@ -59,10 +64,12 @@ export function ChunkReader({
 
   const [dark, setDark] = useState(false);
   const [bionic, setBionic] = useState(false);
+  const [mode, setMode] = useState<ReadingMode>("study");
 
   useEffect(() => {
     setDark(document.documentElement.classList.contains("dark"));
     setBionic(localStorage.getItem("bionic") === "true");
+    setMode(getReadingMode());
   }, []);
 
   function toggleTheme() {
@@ -83,10 +90,19 @@ export function ChunkReader({
   function handleFinishReading() {
     if (hasNextChunk) {
       router.push(readUrl({ chunk: chunkNumber + 1 }));
-    } else {
+    } else if (mode === "study") {
       router.push(
         `/try/bible/questions/${encodeURIComponent(bookName)}/${chapterNumber}?version=${versionAbbr}`,
       );
+    } else {
+      markChapterComplete(bookName, chapterNumber);
+      const currentIdx = chapterNumbers.indexOf(chapterNumber);
+      const nextChapter = chapterNumbers[currentIdx + 1];
+      if (nextChapter !== undefined) {
+        router.push(readUrl({ chapter: nextChapter, chunk: 1 }));
+      } else {
+        router.push("/try/bible/start");
+      }
     }
   }
 
@@ -221,6 +237,36 @@ export function ChunkReader({
           >
             <span className="text-sm">Bionic Reading</span>
           </button>
+
+          {/* Reading mode toggle */}
+          <div className="inline-flex rounded-md bg-gray-100 p-0.5 dark:bg-gray-800">
+            <button
+              onClick={() => {
+                setMode("study");
+                setReadingMode("study");
+              }}
+              className={`rounded px-2 py-1 text-[0.65rem] font-semibold leading-none transition-all ${
+                mode === "study"
+                  ? "bg-white text-emerald-700 shadow-sm dark:bg-gray-700 dark:text-emerald-400"
+                  : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+              }`}
+            >
+              Study
+            </button>
+            <button
+              onClick={() => {
+                setMode("read");
+                setReadingMode("read");
+              }}
+              className={`rounded px-2 py-1 text-[0.65rem] font-semibold leading-none transition-all ${
+                mode === "read"
+                  ? "bg-white text-emerald-700 shadow-sm dark:bg-gray-700 dark:text-emerald-400"
+                  : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+              }`}
+            >
+              Read
+            </button>
+          </div>
 
           {/* Version picker */}
           <div ref={versionRef} className="relative">

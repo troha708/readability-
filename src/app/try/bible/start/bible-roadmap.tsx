@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { getProgress, type ReadingProgress } from "@/lib/reading-progress";
+import {
+  getProgress,
+  getReadingMode,
+  setReadingMode,
+  type ReadingMode,
+  type ReadingProgress,
+} from "@/lib/reading-progress";
 
 const BIBLE_BOOK_ORDER = [
   "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
@@ -47,9 +53,11 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
   });
   const johnRef = useRef<HTMLDivElement>(null);
   const [completedChapters, setCompletedChapters] = useState<ReadingProgress>({});
+  const [mode, setMode] = useState<ReadingMode>("study");
 
   useEffect(() => {
     setCompletedChapters(getProgress());
+    setMode(getReadingMode());
   }, []);
 
   useEffect(() => {
@@ -213,6 +221,43 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
           <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
             Version: {versionAbbr}
           </p>
+
+          {/* Reading mode toggle */}
+          <div className="mt-4 flex flex-col items-center gap-1.5">
+            <div className="inline-flex rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
+              <button
+                onClick={() => {
+                  setMode("study");
+                  setReadingMode("study");
+                }}
+                className={`rounded-md px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                  mode === "study"
+                    ? "bg-white text-emerald-700 shadow-sm dark:bg-gray-700 dark:text-emerald-400"
+                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                }`}
+              >
+                Study Mode
+              </button>
+              <button
+                onClick={() => {
+                  setMode("read");
+                  setReadingMode("read");
+                }}
+                className={`rounded-md px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                  mode === "read"
+                    ? "bg-white text-emerald-700 shadow-sm dark:bg-gray-700 dark:text-emerald-400"
+                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                }`}
+              >
+                Read Mode
+              </button>
+            </div>
+            <p className="text-[0.65rem] text-gray-400 dark:text-gray-500">
+              {mode === "study"
+                ? "Comprehension questions after each chapter"
+                : "Read without questions"}
+            </p>
+          </div>
         </div>
 
         {renderSection("Old Testament", otBooks)}
