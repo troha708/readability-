@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { getProgress, type ReadingProgress } from "@/lib/reading-progress";
 
 const BIBLE_BOOK_ORDER = [
   "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
@@ -45,6 +46,11 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
     chapter: 1,
   });
   const johnRef = useRef<HTMLDivElement>(null);
+  const [completedChapters, setCompletedChapters] = useState<ReadingProgress>({});
+
+  useEffect(() => {
+    setCompletedChapters(getProgress());
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -76,6 +82,11 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
             const isJohn = book.name === "John";
             const hasChapters = book.chapters.length > 0;
             const isSelectedBook = selected.book === book.name;
+            const allComplete =
+              hasChapters &&
+              book.chapters.every(
+                (ch) => !!completedChapters[`${book.name}:${ch.chapterNumber}`],
+              );
             const selectedChapter = book.chapters.find(
               (c) => c.chapterNumber === selected.chapter,
             );
@@ -89,11 +100,13 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                 {/* Timeline dot */}
                 <div
                   className={`absolute -left-[9px] top-3.5 h-4 w-4 rounded-full border-2 ${
-                    isJohn
+                    allComplete
                       ? "border-emerald-500 bg-emerald-500"
-                      : hasChapters
-                        ? "border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-900"
-                        : "border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
+                      : isJohn
+                        ? "border-emerald-500 bg-emerald-500"
+                        : hasChapters
+                          ? "border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-900"
+                          : "border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
                   }`}
                 />
 
@@ -121,6 +134,8 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                     {book.chapters.map((ch) => {
                       const isSel =
                         isSelectedBook && ch.chapterNumber === selected.chapter;
+                      const isComplete =
+                        !!completedChapters[`${book.name}:${ch.chapterNumber}`];
                       return (
                         <button
                           key={ch.chapterNumber}
@@ -133,7 +148,9 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                           className={`relative flex h-7 min-w-[1.75rem] items-center justify-center rounded px-1 text-xs tabular-nums transition-colors ${
                             isSel
                               ? "bg-emerald-500 font-semibold text-white shadow-sm"
-                              : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                              : isComplete
+                                ? "bg-emerald-100 font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-400 dark:ring-emerald-700"
+                                : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                           }`}
                         >
                           {ch.chapterNumber}
@@ -142,7 +159,9 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                               className={`absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[0.5rem] font-bold leading-none ${
                                 isSel
                                   ? "bg-emerald-700 text-emerald-100"
-                                  : "bg-gray-300 text-gray-600 dark:bg-gray-600 dark:text-gray-300"
+                                  : isComplete
+                                    ? "bg-emerald-500 text-white"
+                                    : "bg-gray-300 text-gray-600 dark:bg-gray-600 dark:text-gray-300"
                               }`}
                             >
                               {ch.chunkCount}

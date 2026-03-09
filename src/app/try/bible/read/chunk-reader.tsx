@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import { FormattedChunkText } from "./format-chunk-text";
 
 type VersionInfo = { abbr: string; name: string };
@@ -75,6 +76,26 @@ export function ChunkReader({
     const next = !bionic;
     setBionic(next);
     localStorage.setItem("bionic", String(next));
+  }
+
+  const hasReachedBottom = readProgress >= 95;
+
+  function handleFinishReading() {
+    if (hasNextChunk) {
+      router.push(readUrl({ chunk: chunkNumber + 1 }));
+    } else {
+      router.push(
+        `/try/bible/questions/${encodeURIComponent(bookName)}/${chapterNumber}?version=${versionAbbr}`,
+      );
+    }
+  }
+
+  function handleGoBack() {
+    if (chunkNumber > 1) {
+      router.push(readUrl({ chunk: chunkNumber - 1 }));
+    } else {
+      router.back();
+    }
   }
 
   const updateProgress = useCallback(() => {
@@ -263,22 +284,22 @@ export function ChunkReader({
       {/* Footer */}
       <footer className="border-t border-gray-200 bg-white px-4 py-6 dark:border-gray-700 dark:bg-gray-900">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-4">
-          <Link
-            href="/try/bible/start"
+          <button
+            onClick={handleGoBack}
             className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-400"
           >
-            ← Back to start
-          </Link>
-          {hasNextChunk ? (
-            <Link
-              href={readUrl({ chunk: chunkNumber + 1 })}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+            ← Go back
+          </button>
+          {hasReachedBottom ? (
+            <button
+              onClick={handleFinishReading}
+              className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95"
             >
-              Next chunk →
-            </Link>
+              I&apos;ve finished reading ✓
+            </button>
           ) : (
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              End of chapter
+            <span className="text-sm text-gray-400 dark:text-gray-500">
+              Scroll to finish…
             </span>
           )}
         </div>
