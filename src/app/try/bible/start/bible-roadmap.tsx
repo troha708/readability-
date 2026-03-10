@@ -55,6 +55,10 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
   const [completedChapters, setCompletedChapters] = useState<ReadingProgress>({});
   const [mode, setMode] = useState<ReadingMode>("study");
   const [expandedBooks, setExpandedBooks] = useState<Set<string>>(new Set());
+  const [continueTarget, setContinueTarget] = useState<{ book: string; chapter: number }>({
+    book: "John",
+    chapter: 1,
+  });
 
   useEffect(() => {
     const progress = getProgress();
@@ -63,14 +67,31 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
 
     const inProgress = new Set<string>();
     const sorted = [...books].sort((a, b) => bookSortKey(a.name) - bookSortKey(b.name));
+
+    let lastActiveBook: BookInfo | null = null;
     for (const book of sorted) {
       if (book.chapters.length === 0) continue;
       const hasAny = book.chapters.some((ch) => !!progress[`${book.name}:${ch.chapterNumber}`]);
       const allDone = book.chapters.every((ch) => !!progress[`${book.name}:${ch.chapterNumber}`]);
-      if (hasAny && !allDone) inProgress.add(book.name);
+      if (hasAny && !allDone) {
+        inProgress.add(book.name);
+        lastActiveBook = book;
+      }
     }
     if (inProgress.size === 0) inProgress.add("John");
     setExpandedBooks(inProgress);
+
+    if (lastActiveBook) {
+      const firstIncomplete = lastActiveBook.chapters.find(
+        (ch) => !progress[`${lastActiveBook.name}:${ch.chapterNumber}`],
+      );
+      setContinueTarget({
+        book: lastActiveBook.name,
+        chapter: firstIncomplete ? firstIncomplete.chapterNumber : 1,
+      });
+    } else {
+      setContinueTarget({ book: "John", chapter: 1 });
+    }
   }, [books]);
 
   useEffect(() => {
@@ -303,6 +324,18 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                 : "Read without questions"}
             </p>
           </div>
+
+          {/* Continue Reading button */}
+          <Link
+            href={readUrl(continueTarget.book, continueTarget.chapter)}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-4 text-lg font-bold text-white shadow-md transition-colors hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700"
+          >
+            Continue Reading
+            <span className="text-base font-normal text-emerald-200">
+              {continueTarget.book} {continueTarget.chapter}
+            </span>
+            <span aria-hidden="true">→</span>
+          </Link>
         </div>
 
         {renderSection("Old Testament", otBooks)}
