@@ -54,11 +54,24 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
   const johnRef = useRef<HTMLDivElement>(null);
   const [completedChapters, setCompletedChapters] = useState<ReadingProgress>({});
   const [mode, setMode] = useState<ReadingMode>("study");
+  const [expandedBooks, setExpandedBooks] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    setCompletedChapters(getProgress());
+    const progress = getProgress();
+    setCompletedChapters(progress);
     setMode(getReadingMode());
-  }, []);
+
+    const inProgress = new Set<string>();
+    const sorted = [...books].sort((a, b) => bookSortKey(a.name) - bookSortKey(b.name));
+    for (const book of sorted) {
+      if (book.chapters.length === 0) continue;
+      const hasAny = book.chapters.some((ch) => !!progress[`${book.name}:${ch.chapterNumber}`]);
+      const allDone = book.chapters.every((ch) => !!progress[`${book.name}:${ch.chapterNumber}`]);
+      if (hasAny && !allDone) inProgress.add(book.name);
+    }
+    if (inProgress.size === 0) inProgress.add("John");
+    setExpandedBooks(inProgress);
+  }, [books]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -70,6 +83,15 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
   const sorted = [...books].sort((a, b) => bookSortKey(a.name) - bookSortKey(b.name));
   const otBooks = sorted.filter((b) => b.testament === "OT");
   const ntBooks = sorted.filter((b) => b.testament === "NT");
+
+  function toggleBook(bookName: string) {
+    setExpandedBooks((prev) => {
+      const next = new Set(prev);
+      if (next.has(bookName)) next.delete(bookName);
+      else next.add(bookName);
+      return next;
+    });
+  }
 
   function readUrl(book: string, chapter: number) {
     return `/try/bible/read?book=${encodeURIComponent(book)}&chapter=${chapter}&chunk=1&version=${versionAbbr}`;
@@ -90,11 +112,11 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
             const isJohn = book.name === "John";
             const hasChapters = book.chapters.length > 0;
             const isSelectedBook = selected.book === book.name;
-            const allComplete =
-              hasChapters &&
-              book.chapters.every(
-                (ch) => !!completedChapters[`${book.name}:${ch.chapterNumber}`],
-              );
+            const completedCount = book.chapters.filter(
+              (ch) => !!completedChapters[`${book.name}:${ch.chapterNumber}`],
+            ).length;
+            const allComplete = hasChapters && completedCount === book.chapters.length;
+            const isExpanded = expandedBooks.has(book.name);
             const selectedChapter = book.chapters.find(
               (c) => c.chapterNumber === selected.chapter,
             );
@@ -118,8 +140,24 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                   }`}
                 />
 
-                {/* Book name */}
-                <div className="flex items-center gap-2">
+                {/* Book name — clickable to expand/collapse */}
+                <button
+                  onClick={() => hasChapters && toggleBook(book.name)}
+                  className={`flex items-center gap-2 ${hasChapters ? "cursor-pointer" : "cursor-default"}`}
+                >
+                  {hasChapters && (
+                    <svg
+                      className={`h-3.5 w-3.5 flex-shrink-0 text-gray-400 transition-transform duration-200 dark:text-gray-500 ${
+                        isExpanded ? "rotate-90" : ""
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2.5}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
                   <h3
                     className={`text-sm font-semibold ${
                       hasChapters
@@ -134,70 +172,77 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                       Start here
                     </span>
                   )}
-                </div>
-
-                {/* Chapter grid */}
-                {hasChapters && (
-                  <div className="mt-1.5 flex flex-wrap gap-1">
-                    {book.chapters.map((ch) => {
-                      const isSel =
-                        isSelectedBook && ch.chapterNumber === selected.chapter;
-                      const isComplete =
-                        !!completedChapters[`${book.name}:${ch.chapterNumber}`];
-                      return (
-                        <button
-                          key={ch.chapterNumber}
-                          onClick={() =>
-                            setSelected({
-                              book: book.name,
-                              chapter: ch.chapterNumber,
-                            })
-                          }
-                          className={`relative flex h-7 min-w-[1.75rem] items-center justify-center rounded px-1 text-xs tabular-nums transition-colors ${
-                            isSel
-                              ? "bg-emerald-500 font-semibold text-white shadow-sm"
-                              : isComplete
-                                ? "bg-emerald-100 font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-400 dark:ring-emerald-700"
-                                : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-                          }`}
-                        >
-                          {ch.chapterNumber}
-                          {ch.chunkCount > 1 && (
-                            <span
-                              className={`absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[0.5rem] font-bold leading-none ${
-                                isSel
-                                  ? "bg-emerald-700 text-emerald-100"
-                                  : isComplete
-                                    ? "bg-emerald-500 text-white"
-                                    : "bg-gray-300 text-gray-600 dark:bg-gray-600 dark:text-gray-300"
-                              }`}
-                            >
-                              {ch.chunkCount}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Begin button */}
-                {isSelectedBook && hasChapters && (
-                  <div className="mt-3 flex items-center gap-3">
-                    <Link
-                      href={readUrl(book.name, selected.chapter)}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
-                    >
-                      Begin Reading
-                      <span aria-hidden="true">→</span>
-                    </Link>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {book.name} {selected.chapter}
-                      {selectedChapter && selectedChapter.chunkCount > 1
-                        ? ` · ${selectedChapter.chunkCount} parts`
-                        : ""}
+                  {!isExpanded && hasChapters && (
+                    <span className="text-[0.65rem] text-gray-400 dark:text-gray-500">
+                      {book.chapters.length} ch.
+                      {completedCount > 0 && ` · ${completedCount} done`}
                     </span>
-                  </div>
+                  )}
+                </button>
+
+                {/* Collapsible chapter grid + begin button */}
+                {isExpanded && hasChapters && (
+                  <>
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {book.chapters.map((ch) => {
+                        const isSel =
+                          isSelectedBook && ch.chapterNumber === selected.chapter;
+                        const isComplete =
+                          !!completedChapters[`${book.name}:${ch.chapterNumber}`];
+                        return (
+                          <button
+                            key={ch.chapterNumber}
+                            onClick={() =>
+                              setSelected({
+                                book: book.name,
+                                chapter: ch.chapterNumber,
+                              })
+                            }
+                            className={`relative flex h-7 min-w-[1.75rem] items-center justify-center rounded px-1 text-xs tabular-nums transition-colors ${
+                              isSel
+                                ? "bg-emerald-500 font-semibold text-white shadow-sm"
+                                : isComplete
+                                  ? "bg-emerald-100 font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-400 dark:ring-emerald-700"
+                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                            }`}
+                          >
+                            {ch.chapterNumber}
+                            {ch.chunkCount > 1 && (
+                              <span
+                                className={`absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[0.5rem] font-bold leading-none ${
+                                  isSel
+                                    ? "bg-emerald-700 text-emerald-100"
+                                    : isComplete
+                                      ? "bg-emerald-500 text-white"
+                                      : "bg-gray-300 text-gray-600 dark:bg-gray-600 dark:text-gray-300"
+                                }`}
+                              >
+                                {ch.chunkCount}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {isSelectedBook && (
+                      <div className="mt-3 flex items-center gap-3">
+                        <Link
+                          href={readUrl(book.name, selected.chapter)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
+                        >
+                          Begin Reading
+                          <span aria-hidden="true">→</span>
+                        </Link>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {book.name} {selected.chapter}
+                          {selectedChapter && selectedChapter.chunkCount > 1
+                            ? ` · ${selectedChapter.chunkCount} parts`
+                            : ""}
+                        </span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             );
