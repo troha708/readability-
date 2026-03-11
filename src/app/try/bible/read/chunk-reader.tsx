@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -165,12 +164,12 @@ export function ChunkReader({
       {/* Sticky header */}
       <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
         <div className="mx-auto flex max-w-2xl items-center gap-3">
-          <Link
-            href="/try/bible/start"
+          <button
+            onClick={() => router.back()}
             className="shrink-0 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-400"
           >
             ←
-          </Link>
+          </button>
 
           {/* Book + Chapter picker */}
           <div ref={chapterRef} className="relative">

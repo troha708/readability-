@@ -21,6 +21,10 @@ type Props = {
   versionAbbr: string;
 };
 
+function normalize(s: string) {
+  return s.toLowerCase().trim();
+}
+
 export function Quiz({
   bookName,
   chapterNumber,
@@ -28,12 +32,16 @@ export function Quiz({
   chapterNumbers,
   versionAbbr,
 }: Props) {
+  const [activeQuestions, setActiveQuestions] = useState<Question[]>(questions);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [fillInput, setFillInput] = useState("");
   const [showFeedback, setShowFeedback] = useState(false);
-  const [score, setScore] = useState(0);
-  const [finished, setFinished] = useState(questions.length === 0);
+  const [roundCorrect, setRoundCorrect] = useState(0);
+  const [missedInRound, setMissedInRound] = useState<Question[]>([]);
+  const [phase, setPhase] = useState<"questions" | "review" | "complete">(
+    questions.length === 0 ? "complete" : "questions",
+  );
 
   useEffect(() => {
     if (questions.length === 0) {
@@ -41,12 +49,8 @@ export function Quiz({
     }
   }, [bookName, chapterNumber, questions.length]);
 
-  const total = questions.length;
-  const current = total > 0 ? questions[currentIndex] : null;
-
-  function normalize(s: string) {
-    return s.toLowerCase().trim();
-  }
+  const roundTotal = activeQuestions.length;
+  const current = roundTotal > 0 ? activeQuestions[currentIndex] : null;
 
   function isCorrect(answer: string) {
     return current !== null && normalize(answer) === normalize(current.answer);
@@ -57,7 +61,9 @@ export function Quiz({
     setSelectedAnswer(answer);
     setShowFeedback(true);
     if (isCorrect(answer)) {
-      setScore((s) => s + 1);
+      setRoundCorrect((s) => s + 1);
+    } else {
+      setMissedInRound((prev) => [...prev, current!]);
     }
   }
 
@@ -68,15 +74,32 @@ export function Quiz({
   }
 
   function handleNext() {
-    if (currentIndex < total - 1) {
+    if (currentIndex < roundTotal - 1) {
       setCurrentIndex((i) => i + 1);
       setSelectedAnswer(null);
       setFillInput("");
       setShowFeedback(false);
+    } else if (missedInRound.length > 0) {
+      setPhase("review");
     } else {
       markChapterComplete(bookName, chapterNumber);
-      setFinished(true);
+      setPhase("complete");
     }
+  }
+
+  function handleRetry() {
+    setActiveQuestions(missedInRound);
+    setCurrentIndex(0);
+    setSelectedAnswer(null);
+    setFillInput("");
+    setShowFeedback(false);
+    setRoundCorrect(0);
+    setMissedInRound([]);
+    setPhase("questions");
+  }
+
+  function readChapterUrl() {
+    return `/try/bible/read?book=${encodeURIComponent(bookName)}&chapter=${chapterNumber}&chunk=1&version=${versionAbbr}`;
   }
 
   function getNextChapterUrl(): string | null {
@@ -90,27 +113,73 @@ export function Quiz({
 
   const nextUrl = getNextChapterUrl();
 
-  // ── Score / Completion Screen ──────────────────────────────
+  // ── Review Screen (got some wrong) ─────────────────────────
 
-  if (finished) {
-    const pct = total > 0 ? Math.round((score / total) * 100) : 100;
+  if (phase === "review") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white px-4 dark:bg-gray-900">
+        <div className="w-full max-w-md text-center">
+          <div className="mx-auto mb-6 flex h-28 w-28 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-900/30">
+            <span className="text-4xl font-bold text-amber-600 dark:text-amber-400">
+              {roundCorrect}/{roundTotal}
+            </span>
+          </div>
+
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            You got {roundCorrect}/{roundTotal} — review and retry!
+          </h1>
+          <p className="mt-3 text-gray-500 dark:text-gray-400">
+            {missedInRound.length === 1
+              ? "1 question needs another look."
+              : `${missedInRound.length} questions need another look.`}
+          </p>
+
+          <div className="mt-8 flex flex-col gap-3">
+            <button
+              onClick={handleRetry}
+              className="rounded-lg bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
+            >
+              Retry Questions →
+            </button>
+            <Link
+              href={readChapterUrl()}
+              className="rounded-lg border-2 border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-800"
+            >
+              Re-read Chapter
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Completion Screen ──────────────────────────────────────
+
+  if (phase === "complete") {
+    const originalTotal = questions.length;
     let message: string;
-    if (total === 0) message = "You've completed this chapter's reading.";
-    else if (pct === 100) message = "Perfect score! Incredible retention.";
-    else if (pct >= 80) message = "Great job! You really paid attention.";
-    else if (pct >= 60)
-      message =
-        "Good effort! Consider re-reading to strengthen your understanding.";
-    else message = "Keep going! Each chapter builds your understanding.";
+    if (originalTotal === 0)
+      message = "You've completed this chapter's reading.";
+    else message = "Perfect — every question answered correctly!";
 
     return (
       <div className="flex min-h-screen items-center justify-center bg-white px-4 dark:bg-gray-900">
         <div className="w-full max-w-md text-center">
           <div className="mx-auto mb-6 flex h-28 w-28 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-900/30">
-            {total > 0 ? (
-              <span className="text-4xl font-bold text-emerald-600 dark:text-emerald-400">
-                {score}/{total}
-              </span>
+            {originalTotal > 0 ? (
+              <svg
+                className="h-14 w-14 text-emerald-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
             ) : (
               <svg
                 className="h-12 w-12 text-emerald-500"
@@ -149,6 +218,12 @@ export function Quiz({
                 Back to Roadmap
               </Link>
             )}
+            <Link
+              href={readChapterUrl()}
+              className="inline-block rounded-lg border-2 border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-800"
+            >
+              Re-read Chapter
+            </Link>
             {nextUrl && (
               <Link
                 href="/try/bible/start"
@@ -212,12 +287,12 @@ export function Quiz({
               {bookName} {chapterNumber}
             </span>
             <span className="text-sm tabular-nums text-gray-500 dark:text-gray-400">
-              {currentIndex + 1}/{total}
+              {currentIndex + 1}/{roundTotal}
             </span>
           </div>
           {/* Segmented progress */}
           <div className="mt-2.5 flex gap-1.5">
-            {questions.map((_, i) => (
+            {activeQuestions.map((_, i) => (
               <div
                 key={i}
                 className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
@@ -338,7 +413,7 @@ export function Quiz({
                 onClick={handleNext}
                 className="mt-4 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 active:scale-[0.98]"
               >
-                {currentIndex < total - 1 ? "Next Question →" : "See Results"}
+                {currentIndex < roundTotal - 1 ? "Next Question →" : "See Results"}
               </button>
             </div>
           )}
