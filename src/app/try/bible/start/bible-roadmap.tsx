@@ -5,9 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import {
   getProgress,
   getReadingMode,
+  getStreakInfo,
   setReadingMode,
   type ReadingMode,
   type ReadingProgress,
+  type StreakInfo,
 } from "@/lib/reading-progress";
 
 const BIBLE_BOOK_ORDER = [
@@ -59,11 +61,13 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
     book: "John",
     chapter: 1,
   });
+  const [streak, setStreak] = useState<StreakInfo>({ streak: 0, completedToday: false });
 
   useEffect(() => {
     const progress = getProgress();
     setCompletedChapters(progress);
     setMode(getReadingMode());
+    setStreak(getStreakInfo());
 
     const inProgress = new Set<string>();
     const sorted = [...books].sort((a, b) => bookSortKey(a.name) - bookSortKey(b.name));
@@ -287,6 +291,32 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
           <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
             Version: {versionAbbr}
           </p>
+
+          {/* Streak counter */}
+          <div className="mt-5 inline-flex flex-col items-center gap-1">
+            <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-4 py-2 dark:bg-amber-950/40">
+              <svg
+                className={`h-5 w-5 ${streak.streak > 0 ? "text-amber-500" : "text-gray-300 dark:text-gray-600"}`}
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M12 23c-3.866 0-7-3.134-7-7 0-2.812 1.631-5.238 4-6.414V2l3.5 3.5L16 2v7.586c2.369 1.176 4 3.602 4 6.414 0 3.866-3.134 7-7 7zm0-2a5 5 0 0 0 5-5c0-2.083-1.249-3.876-3.038-4.67L13 10.9V6.41l-1 1-1-1V10.9l-.962.43C8.249 12.124 7 13.917 7 16a5 5 0 0 0 5 5zm-1-4a1 1 0 0 1 2 0 1.5 1.5 0 0 1-2 2v-2z" />
+              </svg>
+              <span className="text-lg font-bold tabular-nums text-amber-700 dark:text-amber-400">
+                {streak.streak}
+              </span>
+              <span className="text-xs font-medium text-amber-600 dark:text-amber-500">
+                {streak.streak === 1 ? "day" : "days"}
+              </span>
+            </div>
+            {!streak.completedToday && (
+              <p className="text-[0.65rem] font-medium text-amber-600 dark:text-amber-500">
+                {streak.streak > 0
+                  ? "Complete a chapter to keep your streak alive!"
+                  : "Complete a chapter to start your streak!"}
+              </p>
+            )}
+          </div>
 
           {/* Reading mode toggle */}
           <div className="mt-4 flex flex-col items-center gap-1.5">
