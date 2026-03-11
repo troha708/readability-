@@ -11,12 +11,13 @@ export default function Home() {
         </div>
 
         <h1 className="mx-auto max-w-3xl text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl dark:text-white">
-          Readability — Build Your Reading Habit
+          Readability — Build Your Bible Reading Habit
         </h1>
 
         <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-gray-500 dark:text-gray-400">
-          Daily reading sessions with comprehension questions that make sure you
-          actually understand what you read.
+          Daily Bible reading sessions with comprehension questions that make
+          sure you actually understand what you read. Start with the Gospel of
+          John and work through the entire Bible at your own pace.
         </p>
 
         <Link
