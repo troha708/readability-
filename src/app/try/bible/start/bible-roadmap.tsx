@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
-  getProgress,
+  getReadProgress,
+  getQuizProgress,
   getReadingMode,
   getStreakInfo,
   setReadingMode,
@@ -48,13 +49,30 @@ function bookSortKey(name: string): number {
   return idx >= 0 ? idx : 999;
 }
 
+function BookIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+    </svg>
+  );
+}
+
+function PencilIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+    </svg>
+  );
+}
+
 export function BibleRoadmap({ books, versionAbbr }: Props) {
   const [selected, setSelected] = useState<{ book: string; chapter: number }>({
     book: "John",
     chapter: 1,
   });
   const johnRef = useRef<HTMLDivElement>(null);
-  const [completedChapters, setCompletedChapters] = useState<ReadingProgress>({});
+  const [readingDone, setReadingDone] = useState<ReadingProgress>({});
+  const [quizDone, setQuizDone] = useState<ReadingProgress>({});
   const [mode, setMode] = useState<ReadingMode>("study");
   const [expandedBooks, setExpandedBooks] = useState<Set<string>>(new Set());
   const [continueTarget, setContinueTarget] = useState<{ book: string; chapter: number }>({
@@ -64,10 +82,19 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
   const [streak, setStreak] = useState<StreakInfo>({ streak: 0, completedToday: false });
 
   useEffect(() => {
-    const progress = getProgress();
-    setCompletedChapters(progress);
-    setMode(getReadingMode());
+    const readProg = getReadProgress();
+    const quizProg = getQuizProgress();
+    setReadingDone(readProg);
+    setQuizDone(quizProg);
+    const currentMode = getReadingMode();
+    setMode(currentMode);
     setStreak(getStreakInfo());
+
+    const isFullyDone = (bookName: string, chNum: number) => {
+      const key = `${bookName}:${chNum}`;
+      if (currentMode === "read") return !!readProg[key];
+      return !!readProg[key] && !!quizProg[key];
+    };
 
     const inProgress = new Set<string>();
     const sorted = [...books].sort((a, b) => bookSortKey(a.name) - bookSortKey(b.name));
@@ -75,8 +102,8 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
     let lastActiveBook: BookInfo | null = null;
     for (const book of sorted) {
       if (book.chapters.length === 0) continue;
-      const hasAny = book.chapters.some((ch) => !!progress[`${book.name}:${ch.chapterNumber}`]);
-      const allDone = book.chapters.every((ch) => !!progress[`${book.name}:${ch.chapterNumber}`]);
+      const hasAny = book.chapters.some((ch) => isFullyDone(book.name, ch.chapterNumber));
+      const allDone = book.chapters.every((ch) => isFullyDone(book.name, ch.chapterNumber));
       if (hasAny && !allDone) {
         inProgress.add(book.name);
         lastActiveBook = book;
@@ -87,7 +114,7 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
 
     if (lastActiveBook) {
       const firstIncomplete = lastActiveBook.chapters.find(
-        (ch) => !progress[`${lastActiveBook.name}:${ch.chapterNumber}`],
+        (ch) => !isFullyDone(lastActiveBook.name, ch.chapterNumber),
       );
       setContinueTarget({
         book: lastActiveBook.name,
@@ -137,9 +164,12 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
             const isJohn = book.name === "John";
             const hasChapters = book.chapters.length > 0;
             const isSelectedBook = selected.book === book.name;
-            const completedCount = book.chapters.filter(
-              (ch) => !!completedChapters[`${book.name}:${ch.chapterNumber}`],
-            ).length;
+            const isStudy = mode === "study";
+            const completedCount = book.chapters.filter((ch) => {
+              const key = `${book.name}:${ch.chapterNumber}`;
+              if (!isStudy) return !!readingDone[key];
+              return !!readingDone[key] && !!quizDone[key];
+            }).length;
             const allComplete = hasChapters && completedCount === book.chapters.length;
             const isExpanded = expandedBooks.has(book.name);
             const selectedChapter = book.chapters.find(
@@ -212,8 +242,12 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                       {book.chapters.map((ch) => {
                         const isSel =
                           isSelectedBook && ch.chapterNumber === selected.chapter;
-                        const isComplete =
-                          !!completedChapters[`${book.name}:${ch.chapterNumber}`];
+                        const key = `${book.name}:${ch.chapterNumber}`;
+                        const readComplete = !!readingDone[key];
+                        const quizComplete = !!quizDone[key];
+                        const isComplete = isStudy
+                          ? readComplete && quizComplete
+                          : readComplete;
                         return (
                           <button
                             key={ch.chapterNumber}
@@ -223,7 +257,9 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                                 chapter: ch.chapterNumber,
                               })
                             }
-                            className={`relative flex h-7 min-w-[1.75rem] items-center justify-center rounded px-1 text-xs tabular-nums transition-colors ${
+                            className={`relative flex ${
+                              isStudy ? "h-11 min-w-[2.25rem] flex-col gap-0.5" : "h-7 min-w-[1.75rem]"
+                            } items-center justify-center rounded px-1 text-xs tabular-nums transition-colors ${
                               isSel
                                 ? "bg-emerald-500 font-semibold text-white shadow-sm"
                                 : isComplete
@@ -231,7 +267,31 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                                   : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                             }`}
                           >
-                            {ch.chapterNumber}
+                            <span className={isStudy ? "leading-none" : ""}>
+                              {ch.chapterNumber}
+                            </span>
+                            {isStudy && (
+                              <span className="flex items-center gap-1">
+                                <BookIcon
+                                  className={`h-3 w-3 ${
+                                    isSel
+                                      ? readComplete ? "text-white" : "text-emerald-200"
+                                      : readComplete
+                                        ? "text-emerald-500 dark:text-emerald-400"
+                                        : "text-gray-300 dark:text-gray-600"
+                                  }`}
+                                />
+                                <PencilIcon
+                                  className={`h-3 w-3 ${
+                                    isSel
+                                      ? quizComplete ? "text-white" : "text-emerald-200"
+                                      : quizComplete
+                                        ? "text-emerald-500 dark:text-emerald-400"
+                                        : "text-gray-300 dark:text-gray-600"
+                                  }`}
+                                />
+                              </span>
+                            )}
                             {ch.chunkCount > 1 && (
                               <span
                                 className={`absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[0.5rem] font-bold leading-none ${

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getReadingMode,
   markChapterComplete,
+  markReadingComplete,
   setReadingMode,
   type ReadingMode,
 } from "@/lib/reading-progress";
@@ -90,6 +91,7 @@ export function ChunkReader({
     if (hasNextChunk) {
       router.push(readUrl({ chunk: chunkNumber + 1 }));
     } else if (mode === "study") {
+      markReadingComplete(bookName, chapterNumber);
       router.push(
         `/try/bible/questions/${encodeURIComponent(bookName)}/${chapterNumber}?version=${versionAbbr}`,
       );

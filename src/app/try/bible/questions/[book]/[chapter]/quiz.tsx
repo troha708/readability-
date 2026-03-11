@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { markChapterComplete } from "@/lib/reading-progress";
+import { markQuizComplete } from "@/lib/reading-progress";
 
 type Question = {
   id: string;
@@ -45,7 +45,7 @@ export function Quiz({
 
   useEffect(() => {
     if (questions.length === 0) {
-      markChapterComplete(bookName, chapterNumber);
+      markQuizComplete(bookName, chapterNumber);
     }
   }, [bookName, chapterNumber, questions.length]);
 
@@ -82,7 +82,7 @@ export function Quiz({
     } else if (missedInRound.length > 0) {
       setPhase("review");
     } else {
-      markChapterComplete(bookName, chapterNumber);
+      markQuizComplete(bookName, chapterNumber);
       setPhase("complete");
     }
   }
@@ -146,6 +146,12 @@ export function Quiz({
               className="rounded-lg border-2 border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-800"
             >
               Re-read Chapter
+            </Link>
+            <Link
+              href="/try/bible/start"
+              className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            >
+              Back to Roadmap
             </Link>
           </div>
         </div>
