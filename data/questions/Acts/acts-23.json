@@ -1,0 +1,11 @@
+{
+  "book": "Acts",
+  "chapter": 23,
+  "questions": [
+    {"id": "acts-23-q1", "type": "multiple_choice", "question": "How did Paul divide the Sanhedrin during his trial?", "options": ["By quoting different prophets", "By claiming to be on trial for the hope of resurrection", "By accusing them of corruption", "By speaking in tongues"], "answer": "By claiming to be on trial for the hope of resurrection", "verse_reference": "Acts 23:6"},
+    {"id": "acts-23-q2", "type": "multiple_choice", "question": "How many men formed a conspiracy and took an oath not to eat or drink until they had killed Paul?", "options": ["Over 20", "Over 30", "Over 40", "Over 50"], "answer": "Over 40", "verse_reference": "Acts 23:13"},
+    {"id": "acts-23-q3", "type": "true_false", "question": "Paul's nephew discovered the plot to kill Paul and reported it to the commander.", "answer": "true", "verse_reference": "Acts 23:16"},
+    {"id": "acts-23-q4", "type": "fill_blank", "question": "The following night, the Lord stood by Paul and said, 'Be of good _____.'", "answer": "cheer", "verse_reference": "Acts 23:11"},
+    {"id": "acts-23-q5", "type": "fill_blank", "question": "The commander sent Paul to Governor _____ in Caesarea with a military escort.", "answer": "Felix", "verse_reference": "Acts 23:26,33"}
+  ]
+}

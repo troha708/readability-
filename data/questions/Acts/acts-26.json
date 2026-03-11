@@ -1,0 +1,11 @@
+{
+  "book": "Acts",
+  "chapter": 26,
+  "questions": [
+    {"id": "acts-26-q1", "type": "multiple_choice", "question": "What was King Agrippa's famous response to Paul's testimony?", "options": ["You are out of your mind", "You almost persuade me to become a Christian", "I find no fault in you", "Tell me more about this Jesus"], "answer": "You almost persuade me to become a Christian", "verse_reference": "Acts 26:28"},
+    {"id": "acts-26-q2", "type": "multiple_choice", "question": "What did Festus shout during Paul's defense?", "options": ["Silence!", "You are insane, Paul — your great learning is driving you mad", "Guards, take him away", "Speak no more of this"], "answer": "You are insane, Paul — your great learning is driving you mad", "verse_reference": "Acts 26:24"},
+    {"id": "acts-26-q3", "type": "true_false", "question": "Agrippa said Paul could have been set free if he had not appealed to Caesar.", "answer": "true", "verse_reference": "Acts 26:32"},
+    {"id": "acts-26-q4", "type": "fill_blank", "question": "Jesus told Paul on the road, 'It is hard for you to kick against the _____.'", "answer": "goads", "verse_reference": "Acts 26:14"},
+    {"id": "acts-26-q5", "type": "fill_blank", "question": "Paul said he was not _____ to the heavenly vision he received from Jesus.", "answer": "disobedient", "verse_reference": "Acts 26:19"}
+  ]
+}

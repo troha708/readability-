@@ -1,0 +1,43 @@
+{
+  "book": "Acts",
+  "chapter": 3,
+  "questions": [
+    {
+      "id": "acts-3-q1",
+      "type": "multiple_choice",
+      "question": "Where were Peter and John going when they healed the lame man?",
+      "options": ["The marketplace", "The temple", "The synagogue", "The upper room"],
+      "answer": "The temple",
+      "verse_reference": "Acts 3:1"
+    },
+    {
+      "id": "acts-3-q2",
+      "type": "multiple_choice",
+      "question": "What did Peter say to the lame man before healing him?",
+      "options": ["Your faith has healed you", "Silver and gold I don't have, but what I have I give you", "Rise and walk in God's name", "Believe and you will be healed"],
+      "answer": "Silver and gold I don't have, but what I have I give you",
+      "verse_reference": "Acts 3:6"
+    },
+    {
+      "id": "acts-3-q3",
+      "type": "true_false",
+      "question": "The lame man had been crippled from birth.",
+      "answer": "true",
+      "verse_reference": "Acts 3:2"
+    },
+    {
+      "id": "acts-3-q4",
+      "type": "fill_blank",
+      "question": "Peter healed the man in the name of Jesus Christ of _____.",
+      "answer": "Nazareth",
+      "verse_reference": "Acts 3:6"
+    },
+    {
+      "id": "acts-3-q5",
+      "type": "fill_blank",
+      "question": "The healed man went into the temple with them, walking, leaping, and _____ God.",
+      "answer": "praising",
+      "verse_reference": "Acts 3:8"
+    }
+  ]
+}
