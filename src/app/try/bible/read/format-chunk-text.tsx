@@ -142,7 +142,7 @@ function isHtml(text: string): boolean {
 // ── Legacy plain-text fallback ───────────────────────────────────────
 
 const VERSE_SPLIT = /(?=\s\d+\S)/;
-const VERSE_NUM_RE = /^\s*(\d+)(.*)/s;
+const VERSE_NUM_RE = /^\s*(\d+)([\s\S]*)/;
 const VERSES_PER_PARA = 5;
 
 function renderPlainText(text: string, bionic: boolean) {
