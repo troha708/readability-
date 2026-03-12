@@ -41,7 +41,7 @@ function LoginPageContent() {
       return;
     }
 
-    router.push(searchParams.get("next") ?? "/");
+    router.push(searchParams.get("next") ?? "/try");
     router.refresh();
   };
 

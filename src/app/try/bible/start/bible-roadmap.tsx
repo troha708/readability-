@@ -12,6 +12,8 @@ import {
   type ReadingProgress,
   type StreakInfo,
 } from "@/lib/reading-progress";
+import { AuthButton } from "@/components/auth-button";
+import { useUser } from "@/hooks/useUser";
 
 const BIBLE_BOOK_ORDER = [
   "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
@@ -66,6 +68,7 @@ function PencilIcon({ className }: { className?: string }) {
 }
 
 export function BibleRoadmap({ books, versionAbbr }: Props) {
+  const { user, loading: userLoading } = useUser();
   const [selected, setSelected] = useState<{ book: string; chapter: number }>({
     book: "John",
     chapter: 1,
@@ -340,6 +343,26 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
   return (
     <main className="min-h-screen px-4 py-12">
       <div className="mx-auto max-w-2xl">
+        {/* Auth bar */}
+        <div className="mb-4 flex justify-end">
+          <AuthButton />
+        </div>
+
+        {/* Sign-in banner for guests */}
+        {!userLoading && !user && (
+          <div className="mb-6 flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 dark:border-blue-800 dark:bg-blue-950/40">
+            <svg className="h-4 w-4 flex-shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+            </svg>
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              <Link href="/login?next=/try" className="font-medium underline hover:no-underline">
+                Sign in
+              </Link>{" "}
+              to save your progress across devices
+            </p>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-10 text-center">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
