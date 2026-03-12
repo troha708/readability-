@@ -44,7 +44,11 @@ export function Quiz({
   );
 
   useEffect(() => {
+    console.log(
+      `[Quiz] book="${bookName}" chapter=${chapterNumber} questions=${questions.length}`,
+    );
     if (questions.length === 0) {
+      console.warn(`[Quiz] No questions for "${bookName}" ch.${chapterNumber} — skipping to complete`);
       markQuizComplete(bookName, chapterNumber);
     }
   }, [bookName, chapterNumber, questions.length]);

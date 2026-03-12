@@ -85,8 +85,6 @@ export function ChunkReader({
     localStorage.setItem("bionic", String(next));
   }
 
-  const hasReachedBottom = readProgress >= 95;
-
   function handleFinishReading() {
     if (hasNextChunk) {
       router.push(readUrl({ chunk: chunkNumber + 1 }));
@@ -337,18 +335,12 @@ export function ChunkReader({
           >
             ← Go back
           </button>
-          {hasReachedBottom ? (
-            <button
-              onClick={handleFinishReading}
-              className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95"
-            >
-              I&apos;ve finished reading ✓
-            </button>
-          ) : (
-            <span className="text-sm text-gray-400 dark:text-gray-500">
-              Scroll to finish…
-            </span>
-          )}
+          <button
+            onClick={handleFinishReading}
+            className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 active:scale-95"
+          >
+            I&apos;ve finished reading ✓
+          </button>
         </div>
       </footer>
     </div>

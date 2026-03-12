@@ -18,6 +18,22 @@ type Props = {
   searchParams: Promise<{ version?: string }>;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeQuestion(raw: any): Question {
+  const typeMap: Record<string, Question["type"]> = {
+    fill_in_the_blank: "fill_blank",
+  };
+
+  return {
+    id: raw.id,
+    type: typeMap[raw.type] ?? raw.type,
+    question: raw.question,
+    options: raw.options,
+    answer: String(raw.answer ?? raw.correct ?? ""),
+    verse_reference: raw.verse_reference ?? raw.verse_ref ?? "",
+  };
+}
+
 export default async function QuestionsPage({ params, searchParams }: Props) {
   const { book, chapter } = await params;
   const sp = await searchParams;
@@ -29,19 +45,30 @@ export default async function QuestionsPage({ params, searchParams }: Props) {
   if (isNaN(chapterNum)) notFound();
 
   let questions: Question[] = [];
-  try {
-    const filePath = join(
-      process.cwd(),
-      "data",
-      "questions",
-      bookName,
-      `${bookName.toLowerCase()}-${chapterNum}.json`,
-    );
-    const raw = readFileSync(filePath, "utf-8");
-    const data = JSON.parse(raw);
-    questions = data.questions ?? [];
-  } catch {
-    // No questions file for this book/chapter
+
+  const candidateNames = [
+    `${bookName.toLowerCase().replace(/ /g, "-")}-${chapterNum}.json`,
+    `chapter_${chapterNum}.json`,
+  ];
+
+  const questionsDir = join(process.cwd(), "data", "questions", bookName);
+
+  for (const fileName of candidateNames) {
+    try {
+      const filePath = join(questionsDir, fileName);
+      console.log(`[questions] Looking for: ${filePath}`);
+      const raw = readFileSync(filePath, "utf-8");
+      const data = JSON.parse(raw);
+      questions = (data.questions ?? []).map(normalizeQuestion);
+      console.log(`[questions] Found ${questions.length} questions in ${fileName}`);
+      break;
+    } catch {
+      // try next candidate
+    }
+  }
+
+  if (questions.length === 0) {
+    console.log(`[questions] No questions found for "${bookName}" chapter ${chapterNum}. Tried: ${candidateNames.join(", ")}`);
   }
 
   const supabase = await createClient();
