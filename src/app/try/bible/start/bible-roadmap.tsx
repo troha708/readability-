@@ -52,6 +52,37 @@ function bookSortKey(name: string): number {
   return idx >= 0 ? idx : 999;
 }
 
+type CompletionAge = "recent" | "fading" | "old";
+
+function getCompletionAge(timestamp: string | undefined): CompletionAge {
+  if (!timestamp) return "old";
+  const days = (Date.now() - new Date(timestamp).getTime()) / (1000 * 60 * 60 * 24);
+  if (days <= 7) return "recent";
+  if (days <= 30) return "fading";
+  return "old";
+}
+
+const AGE_STYLES = {
+  recent: {
+    button:
+      "bg-emerald-100 font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-400 dark:ring-emerald-700",
+    badge: "bg-emerald-500 text-white",
+    icon: "text-emerald-500 dark:text-emerald-400",
+  },
+  fading: {
+    button:
+      "bg-emerald-50 font-semibold text-emerald-600/60 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-950/25 dark:text-emerald-500/50 dark:ring-emerald-800/60",
+    badge: "bg-emerald-400/70 text-white dark:bg-emerald-700",
+    icon: "text-emerald-400/70 dark:text-emerald-600",
+  },
+  old: {
+    button:
+      "bg-emerald-50/60 font-semibold text-emerald-500/50 ring-1 ring-inset ring-emerald-200/60 dark:bg-emerald-950/15 dark:text-emerald-600/40 dark:ring-emerald-800/40",
+    badge: "bg-emerald-300/60 text-white dark:bg-emerald-800/60",
+    icon: "text-emerald-300/60 dark:text-emerald-700/50",
+  },
+} as const;
+
 function BookIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -77,6 +108,7 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
   const johnRef = useRef<HTMLDivElement>(null);
   const [readingDone, setReadingDone] = useState<ReadingProgress>({});
   const [quizDone, setQuizDone] = useState<ReadingProgress>({});
+  const [timestamps, setTimestamps] = useState<Record<string, string>>({});
   const [mode, setMode] = useState<ReadingMode>("study");
   const [expandedBooks, setExpandedBooks] = useState<Set<string>>(new Set());
   const [continueTarget, setContinueTarget] = useState<{ book: string; chapter: number }>({
@@ -87,9 +119,10 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
 
   useEffect(() => {
     async function init() {
-      const { read: readProg, quiz: quizProg } = await loadAllProgress();
+      const { read: readProg, quiz: quizProg, timestamps: ts } = await loadAllProgress();
       setReadingDone(readProg);
       setQuizDone(quizProg);
+      setTimestamps(ts);
       const currentMode = getReadingMode();
       setMode(currentMode);
       setStreak(getStreakInfo());
@@ -254,6 +287,8 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                         const isComplete = isStudy
                           ? readComplete && quizComplete
                           : readComplete;
+                        const age = isComplete ? getCompletionAge(timestamps[key]) : null;
+                        const ageStyle = age ? AGE_STYLES[age] : null;
                         return (
                           <button
                             key={ch.chapterNumber}
@@ -268,8 +303,8 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                             } items-center justify-center rounded px-1 text-xs tabular-nums transition-colors ${
                               isSel
                                 ? "bg-emerald-500 font-semibold text-white shadow-sm"
-                                : isComplete
-                                  ? "bg-emerald-100 font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-400 dark:ring-emerald-700"
+                                : ageStyle
+                                  ? ageStyle.button
                                   : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                             }`}
                           >
@@ -283,7 +318,7 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                                     isSel
                                       ? readComplete ? "text-white" : "text-emerald-200"
                                       : readComplete
-                                        ? "text-emerald-500 dark:text-emerald-400"
+                                        ? (ageStyle?.icon ?? "text-emerald-500 dark:text-emerald-400")
                                         : "text-gray-300 dark:text-gray-600"
                                   }`}
                                 />
@@ -292,7 +327,7 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                                     isSel
                                       ? quizComplete ? "text-white" : "text-emerald-200"
                                       : quizComplete
-                                        ? "text-emerald-500 dark:text-emerald-400"
+                                        ? (ageStyle?.icon ?? "text-emerald-500 dark:text-emerald-400")
                                         : "text-gray-300 dark:text-gray-600"
                                   }`}
                                 />
@@ -303,8 +338,8 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                                 className={`absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[0.5rem] font-bold leading-none ${
                                   isSel
                                     ? "bg-emerald-700 text-emerald-100"
-                                    : isComplete
-                                      ? "bg-emerald-500 text-white"
+                                    : ageStyle
+                                      ? ageStyle.badge
                                       : "bg-gray-300 text-gray-600 dark:bg-gray-600 dark:text-gray-300"
                                 }`}
                               >

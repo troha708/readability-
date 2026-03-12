@@ -13,13 +13,23 @@ type Question = {
   verse_reference: string;
 };
 
+type RawQuestion = {
+  id: string;
+  type: string;
+  question: string;
+  options?: string[];
+  answer?: string;
+  correct?: string;
+  verse_reference?: string;
+  verse_ref?: string;
+};
+
 type Props = {
   params: Promise<{ book: string; chapter: string }>;
   searchParams: Promise<{ version?: string }>;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function normalizeQuestion(raw: any): Question {
+function normalizeQuestion(raw: RawQuestion): Question {
   const typeMap: Record<string, Question["type"]> = {
     fill_in_the_blank: "fill_blank",
   };

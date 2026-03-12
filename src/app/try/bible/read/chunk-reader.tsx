@@ -63,15 +63,27 @@ export function ChunkReader({
   const [chapterOpen, setChapterOpen] = useState(false);
   const versionRef = useRef<HTMLDivElement>(null);
   const chapterRef = useRef<HTMLDivElement>(null);
+  const fontSizeRef = useRef<HTMLDivElement>(null);
+  const [fontSizeOpen, setFontSizeOpen] = useState(false);
 
   const [dark, setDark] = useState(false);
   const [bionic, setBionic] = useState(false);
   const [mode, setMode] = useState<ReadingMode>("study");
+  const [fontSize, setFontSize] = useState(18);
+
+  const FONT_SIZE_MIN = 14;
+  const FONT_SIZE_MAX = 28;
+  const FONT_SIZE_STEP = 2;
 
   useEffect(() => {
     setDark(document.documentElement.classList.contains("dark"));
     setBionic(localStorage.getItem("bionic") === "true");
     setMode(getReadingMode());
+    const saved = localStorage.getItem("bibleFontSize");
+    if (saved) {
+      const n = parseInt(saved, 10);
+      if (n >= FONT_SIZE_MIN && n <= FONT_SIZE_MAX) setFontSize(n);
+    }
   }, []);
 
   function toggleTheme() {
@@ -85,6 +97,14 @@ export function ChunkReader({
     const next = !bionic;
     setBionic(next);
     localStorage.setItem("bionic", String(next));
+  }
+
+  function changeFontSize(delta: number) {
+    setFontSize((prev) => {
+      const next = Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, prev + delta));
+      localStorage.setItem("bibleFontSize", String(next));
+      return next;
+    });
   }
 
   async function handleFinishReading() {
@@ -143,6 +163,8 @@ export function ChunkReader({
         setVersionOpen(false);
       if (chapterRef.current && !chapterRef.current.contains(e.target as Node))
         setChapterOpen(false);
+      if (fontSizeRef.current && !fontSizeRef.current.contains(e.target as Node))
+        setFontSizeOpen(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -216,6 +238,44 @@ export function ChunkReader({
           </div>
 
           <div className="flex-1" />
+
+          {/* Font size control */}
+          <div ref={fontSizeRef} className="relative">
+            <button
+              onClick={() => {
+                setFontSizeOpen((o) => !o);
+                setVersionOpen(false);
+                setChapterOpen(false);
+              }}
+              aria-label="Adjust font size"
+              className="rounded-md p-1.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+            >
+              Aa
+            </button>
+            {fontSizeOpen && (
+              <div className="absolute right-0 top-full z-20 mt-1 flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1.5 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                <button
+                  onClick={() => changeFontSize(-FONT_SIZE_STEP)}
+                  disabled={fontSize <= FONT_SIZE_MIN}
+                  aria-label="Decrease font size"
+                  className="flex h-7 w-7 items-center justify-center rounded text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  −
+                </button>
+                <span className="min-w-[3ch] text-center text-xs font-semibold tabular-nums text-gray-700 dark:text-gray-200">
+                  {fontSize}
+                </span>
+                <button
+                  onClick={() => changeFontSize(FONT_SIZE_STEP)}
+                  disabled={fontSize >= FONT_SIZE_MAX}
+                  aria-label="Increase font size"
+                  className="flex h-7 w-7 items-center justify-center rounded text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  +
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Theme toggle */}
           <button
@@ -322,7 +382,7 @@ export function ChunkReader({
       {/* Content */}
       <div className="px-4 py-8">
         <div className="mx-auto max-w-2xl">
-          <article className="max-w-none text-lg">
+          <article className="max-w-none" style={{ fontSize: `${fontSize}px` }}>
             <FormattedChunkText chunkText={chunkText} bionic={bionic} />
           </article>
         </div>

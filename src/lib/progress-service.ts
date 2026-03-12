@@ -4,6 +4,7 @@ import type { ReadingProgress, StreakInfo } from "./reading-progress";
 const READ_KEY = "bible-reading-progress";
 const QUIZ_KEY = "bible-quiz-progress";
 const DATES_KEY = "bible-completion-dates";
+const TIMESTAMPS_KEY = "bible-chapter-timestamps";
 const MIGRATED_PREFIX = "bible-progress-migrated:";
 
 // ── localStorage helpers ────────────────────────────────────
@@ -29,6 +30,23 @@ function getLocalQuizProgress(): ReadingProgress {
     return { ...read };
   }
   return getLocalProgress(QUIZ_KEY);
+}
+
+function getLocalTimestamps(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem(TIMESTAMPS_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function recordLocalTimestamp(key: string): void {
+  const ts = getLocalTimestamps();
+  if (!ts[key]) {
+    ts[key] = new Date().toISOString();
+    localStorage.setItem(TIMESTAMPS_KEY, JSON.stringify(ts));
+  }
 }
 
 function getLocalDates(): string[] {
@@ -77,23 +95,25 @@ async function getUserId(): Promise<string | null> {
 
 async function fetchSupabaseProgress(
   userId: string,
-): Promise<{ read: ReadingProgress; quiz: ReadingProgress }> {
+): Promise<{ read: ReadingProgress; quiz: ReadingProgress; timestamps: Record<string, string> }> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("user_progress")
-    .select("book, chapter, reading_complete, quiz_complete")
+    .select("book, chapter, reading_complete, quiz_complete, completed_at")
     .eq("user_id", userId);
 
   if (error) throw error;
 
   const read: ReadingProgress = {};
   const quiz: ReadingProgress = {};
+  const timestamps: Record<string, string> = {};
   for (const row of data ?? []) {
     const key = `${row.book}:${row.chapter}`;
     if (row.reading_complete) read[key] = true;
     if (row.quiz_complete) quiz[key] = true;
+    if (row.completed_at) timestamps[key] = row.completed_at;
   }
-  return { read, quiz };
+  return { read, quiz, timestamps };
 }
 
 // ── Supabase writes ─────────────────────────────────────────
@@ -157,6 +177,7 @@ async function migrateLocalProgress(userId: string): Promise<void> {
 
   const supabase = createClient();
   const now = new Date().toISOString();
+  const localTimestamps = getLocalTimestamps();
 
   const { data: existing } = await supabase
     .from("user_progress")
@@ -182,7 +203,7 @@ async function migrateLocalProgress(userId: string): Promise<void> {
       chapter,
       reading_complete: !!localRead[key] || (ex?.reading_complete ?? false),
       quiz_complete: !!localQuiz[key] || (ex?.quiz_complete ?? false),
-      completed_at: ex?.completed_at ?? now,
+      completed_at: ex?.completed_at ?? localTimestamps[key] ?? now,
     });
   }
 
@@ -205,12 +226,14 @@ async function migrateLocalProgress(userId: string): Promise<void> {
 export async function loadAllProgress(): Promise<{
   read: ReadingProgress;
   quiz: ReadingProgress;
+  timestamps: Record<string, string>;
 }> {
   const userId = await getUserId();
   if (!userId) {
     return {
       read: getLocalProgress(READ_KEY),
       quiz: getLocalQuizProgress(),
+      timestamps: getLocalTimestamps(),
     };
   }
 
@@ -221,6 +244,7 @@ export async function loadAllProgress(): Promise<{
     return {
       read: getLocalProgress(READ_KEY),
       quiz: getLocalQuizProgress(),
+      timestamps: getLocalTimestamps(),
     };
   }
 }
@@ -229,14 +253,23 @@ export async function markReadingComplete(
   book: string,
   chapter: number,
 ): Promise<void> {
+  const key = `${book}:${chapter}`;
   const local = getLocalProgress(READ_KEY);
-  local[`${book}:${chapter}`] = true;
+  const alreadyDone = !!local[key];
+  local[key] = true;
   setLocalProgress(READ_KEY, local);
+  recordLocalTimestamp(key);
 
   const userId = await getUserId();
   if (userId) {
     try {
-      await setProgressField(userId, book, chapter, "reading_complete", null);
+      await setProgressField(
+        userId,
+        book,
+        chapter,
+        "reading_complete",
+        alreadyDone ? null : new Date().toISOString(),
+      );
     } catch {
       /* Supabase write failed — localStorage has the data */
     }
@@ -252,7 +285,10 @@ export async function markQuizComplete(
   const alreadyDone = !!local[key];
   local[key] = true;
   setLocalProgress(QUIZ_KEY, local);
-  if (!alreadyDone) recordLocalDate();
+  if (!alreadyDone) {
+    recordLocalDate();
+    recordLocalTimestamp(key);
+  }
 
   const userId = await getUserId();
   if (userId) {
@@ -280,7 +316,10 @@ export async function markChapterComplete(
   const alreadyDone = !!local[key];
   local[key] = true;
   setLocalProgress(READ_KEY, local);
-  if (!alreadyDone) recordLocalDate();
+  if (!alreadyDone) {
+    recordLocalDate();
+    recordLocalTimestamp(key);
+  }
 
   const userId = await getUserId();
   if (userId) {
