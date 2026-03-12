@@ -4,11 +4,13 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getReadingMode,
-  markChapterComplete,
-  markReadingComplete,
   setReadingMode,
   type ReadingMode,
 } from "@/lib/reading-progress";
+import {
+  markChapterComplete,
+  markReadingComplete,
+} from "@/lib/progress-service";
 import { FormattedChunkText } from "./format-chunk-text";
 
 type VersionInfo = { abbr: string; name: string };
@@ -85,16 +87,16 @@ export function ChunkReader({
     localStorage.setItem("bionic", String(next));
   }
 
-  function handleFinishReading() {
+  async function handleFinishReading() {
     if (hasNextChunk) {
       router.push(readUrl({ chunk: chunkNumber + 1 }));
     } else if (mode === "study") {
-      markReadingComplete(bookName, chapterNumber);
+      await markReadingComplete(bookName, chapterNumber);
       router.push(
         `/try/bible/questions/${encodeURIComponent(bookName)}/${chapterNumber}?version=${versionAbbr}`,
       );
     } else {
-      markChapterComplete(bookName, chapterNumber);
+      await markChapterComplete(bookName, chapterNumber);
       const currentIdx = chapterNumbers.indexOf(chapterNumber);
       const nextChapter = chapterNumbers[currentIdx + 1];
       if (nextChapter !== undefined) {

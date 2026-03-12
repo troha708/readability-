@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { markQuizComplete } from "@/lib/reading-progress";
+import { markQuizComplete } from "@/lib/progress-service";
 
 type Question = {
   id: string;
@@ -49,7 +49,7 @@ export function Quiz({
     );
     if (questions.length === 0) {
       console.warn(`[Quiz] No questions for "${bookName}" ch.${chapterNumber} — skipping to complete`);
-      markQuizComplete(bookName, chapterNumber);
+      void markQuizComplete(bookName, chapterNumber);
     }
   }, [bookName, chapterNumber, questions.length]);
 
@@ -77,7 +77,7 @@ export function Quiz({
     handleSelect(fillInput.trim());
   }
 
-  function handleNext() {
+  async function handleNext() {
     if (currentIndex < roundTotal - 1) {
       setCurrentIndex((i) => i + 1);
       setSelectedAnswer(null);
@@ -86,7 +86,7 @@ export function Quiz({
     } else if (missedInRound.length > 0) {
       setPhase("review");
     } else {
-      markQuizComplete(bookName, chapterNumber);
+      await markQuizComplete(bookName, chapterNumber);
       setPhase("complete");
     }
   }

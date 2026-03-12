@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
-  getReadProgress,
-  getQuizProgress,
   getReadingMode,
-  getStreakInfo,
   setReadingMode,
   type ReadingMode,
   type ReadingProgress,
   type StreakInfo,
 } from "@/lib/reading-progress";
+import {
+  loadAllProgress,
+  getStreakInfo,
+} from "@/lib/progress-service";
 import { AuthButton } from "@/components/auth-button";
 import { useUser } from "@/hooks/useUser";
 
@@ -85,47 +86,49 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
   const [streak, setStreak] = useState<StreakInfo>({ streak: 0, completedToday: false });
 
   useEffect(() => {
-    const readProg = getReadProgress();
-    const quizProg = getQuizProgress();
-    setReadingDone(readProg);
-    setQuizDone(quizProg);
-    const currentMode = getReadingMode();
-    setMode(currentMode);
-    setStreak(getStreakInfo());
+    async function init() {
+      const { read: readProg, quiz: quizProg } = await loadAllProgress();
+      setReadingDone(readProg);
+      setQuizDone(quizProg);
+      const currentMode = getReadingMode();
+      setMode(currentMode);
+      setStreak(getStreakInfo());
 
-    const isFullyDone = (bookName: string, chNum: number) => {
-      const key = `${bookName}:${chNum}`;
-      if (currentMode === "read") return !!readProg[key];
-      return !!readProg[key] && !!quizProg[key];
-    };
+      const isFullyDone = (bookName: string, chNum: number) => {
+        const key = `${bookName}:${chNum}`;
+        if (currentMode === "read") return !!readProg[key];
+        return !!readProg[key] && !!quizProg[key];
+      };
 
-    const inProgress = new Set<string>();
-    const sorted = [...books].sort((a, b) => bookSortKey(a.name) - bookSortKey(b.name));
+      const inProgress = new Set<string>();
+      const sorted = [...books].sort((a, b) => bookSortKey(a.name) - bookSortKey(b.name));
 
-    let lastActiveBook: BookInfo | null = null;
-    for (const book of sorted) {
-      if (book.chapters.length === 0) continue;
-      const hasAny = book.chapters.some((ch) => isFullyDone(book.name, ch.chapterNumber));
-      const allDone = book.chapters.every((ch) => isFullyDone(book.name, ch.chapterNumber));
-      if (hasAny && !allDone) {
-        inProgress.add(book.name);
-        lastActiveBook = book;
+      let lastActiveBook: BookInfo | null = null;
+      for (const book of sorted) {
+        if (book.chapters.length === 0) continue;
+        const hasAny = book.chapters.some((ch) => isFullyDone(book.name, ch.chapterNumber));
+        const allDone = book.chapters.every((ch) => isFullyDone(book.name, ch.chapterNumber));
+        if (hasAny && !allDone) {
+          inProgress.add(book.name);
+          lastActiveBook = book;
+        }
+      }
+      if (inProgress.size === 0) inProgress.add("John");
+      setExpandedBooks(inProgress);
+
+      if (lastActiveBook) {
+        const firstIncomplete = lastActiveBook.chapters.find(
+          (ch) => !isFullyDone(lastActiveBook.name, ch.chapterNumber),
+        );
+        setContinueTarget({
+          book: lastActiveBook.name,
+          chapter: firstIncomplete ? firstIncomplete.chapterNumber : 1,
+        });
+      } else {
+        setContinueTarget({ book: "John", chapter: 1 });
       }
     }
-    if (inProgress.size === 0) inProgress.add("John");
-    setExpandedBooks(inProgress);
-
-    if (lastActiveBook) {
-      const firstIncomplete = lastActiveBook.chapters.find(
-        (ch) => !isFullyDone(lastActiveBook.name, ch.chapterNumber),
-      );
-      setContinueTarget({
-        book: lastActiveBook.name,
-        chapter: firstIncomplete ? firstIncomplete.chapterNumber : 1,
-      });
-    } else {
-      setContinueTarget({ book: "John", chapter: 1 });
-    }
+    init();
   }, [books]);
 
   useEffect(() => {
