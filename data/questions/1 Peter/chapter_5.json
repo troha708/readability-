@@ -1,0 +1,58 @@
+{
+  "book": "1 Peter",
+  "chapter": 5,
+  "questions": [
+    {
+      "id": "1pet_5_1",
+      "type": "multiple_choice",
+      "question": "Peter compares the devil to what?",
+      "options": [
+        "A roaring lion looking for someone to devour",
+        "A cunning serpent",
+        "A wolf in sheep's clothing",
+        "A thief in the night"
+      ],
+      "correct": "A roaring lion looking for someone to devour",
+      "verse_ref": "1 Peter 5:8",
+      "feedback": "The devil prowls around like a roaring lion looking for someone to devour."
+    },
+    {
+      "id": "1pet_5_2",
+      "type": "multiple_choice",
+      "question": "Peter tells elders to shepherd the flock in what manner?",
+      "options": [
+        "Willingly and eagerly, not for dishonest gain",
+        "Strictly and with discipline",
+        "Quietly and in secret",
+        "With authority and power"
+      ],
+      "correct": "Willingly and eagerly, not for dishonest gain",
+      "verse_ref": "1 Peter 5:2",
+      "feedback": "Shepherd God's flock willingly and eagerly, not for dishonest gain."
+    },
+    {
+      "id": "1pet_5_3",
+      "type": "true_false",
+      "question": "Peter says God opposes the proud but shows grace to the humble.",
+      "correct": true,
+      "verse_ref": "1 Peter 5:5",
+      "feedback": "God opposes the proud but shows grace to the humble."
+    },
+    {
+      "id": "1pet_5_4",
+      "type": "fill_in_the_blank",
+      "question": "Cast all your _____ on him because he cares for you.",
+      "correct": "anxiety",
+      "verse_ref": "1 Peter 5:7",
+      "feedback": "Cast all your anxiety on him because he cares for you."
+    },
+    {
+      "id": "1pet_5_5",
+      "type": "fill_in_the_blank",
+      "question": "When the Chief _____ appears, you will receive the crown of glory that will never fade away.",
+      "correct": "Shepherd",
+      "verse_ref": "1 Peter 5:4",
+      "feedback": "When the Chief Shepherd appears, you will receive an unfading crown of glory."
+    }
+  ]
+}
