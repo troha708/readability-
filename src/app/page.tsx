@@ -34,45 +34,85 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Browser mockup preview */}
-        <div className="mt-12 lg:mt-0 lg:flex-1">
-          <div className="overflow-hidden rounded-xl border border-gray-200 shadow-2xl dark:border-gray-700">
+        {/* Browser mockup preview — dark theme, matches design */}
+        <div className="mt-12 lg:mt-0 lg:flex-1 lg:min-w-0">
+          <div className="dark mx-auto w-full max-w-3xl overflow-hidden rounded-xl border border-gray-700 bg-gray-900 shadow-2xl">
             {/* Browser chrome */}
-            <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-100 px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-center gap-2 border-b border-gray-700 bg-gray-800 px-4 py-3">
               <div className="flex gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
               </div>
-              <div className="ml-4 flex-1 rounded-md bg-white px-3 py-1.5 text-xs text-gray-400 dark:bg-gray-900 dark:text-gray-500">
+              <div className="ml-4 flex-1 rounded-md bg-gray-900 px-3 py-1.5 text-xs text-gray-500">
                 readability.app/try/bible/read
               </div>
             </div>
-            {/* Mock content */}
-            <div className="space-y-6 bg-white p-6 dark:bg-gray-900">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                  John 1
-                </p>
-                <p className="mt-2 leading-relaxed text-gray-800 dark:text-gray-200">
-                  <sup>1</sup> In the beginning was the Word, and the Word was
-                  with God, and the Word was God. <sup>2</sup> He was in the
-                  beginning with God. <sup>3</sup> All things were made through
-                  him, and without him was not any thing made that was made.
-                </p>
+
+            {/* App header bar */}
+            <div className="border-b border-gray-700 bg-gray-900/95 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <span className="text-base font-bold text-gray-200">
+                  Readability
+                </span>
+                <div className="h-4 w-px shrink-0 bg-gray-600" />
+                <span className="shrink-0 text-sm text-gray-400">←</span>
+                <span className="rounded-md border border-gray-600 px-2.5 py-1 text-sm font-medium text-gray-300">
+                  John 1 <span className="text-gray-500">▾</span>
+                </span>
+                <div className="flex-1" />
+                <span className="text-sm text-gray-400">Study</span>
+                <span className="rounded-md border border-gray-600 px-2.5 py-1 text-sm font-medium text-gray-400">
+                  WEB
+                </span>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-                <p className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+              {/* Progress bar */}
+              <div className="mt-2">
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-700">
+                  <div
+                    className="h-full rounded-full bg-emerald-500"
+                    style={{ width: "75%" }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Mock content — full height, nothing cut off */}
+            <div className="space-y-6 bg-gray-900 p-6 pb-8" style={{ fontSize: "17px" }}>
+              {/* Bible verses with emerald verse numbers */}
+              <p className="leading-relaxed text-gray-300">
+                <sup className="ml-1 mr-px align-super text-[0.6em] font-bold text-emerald-400">
+                  1
+                </sup>{" "}
+                In the beginning was the Word, and the Word was with God, and
+                the Word was God.{" "}
+                <sup className="ml-1 mr-px align-super text-[0.6em] font-bold text-emerald-400">
+                  2
+                </sup>{" "}
+                The same was in the beginning with God.{" "}
+                <sup className="ml-1 mr-px align-super text-[0.6em] font-bold text-emerald-400">
+                  3
+                </sup>{" "}
+                All things were made through him. Without him, nothing was made
+                that has been made.
+              </p>
+
+              {/* Question card */}
+              <div className="rounded-xl border border-gray-700 bg-gray-800/80 p-5">
+                <span className="mb-3 inline-block rounded px-2.5 py-1 text-xs font-medium text-white bg-gray-700">
+                  Multiple Choice
+                </span>
+                <p className="mb-4 text-base font-medium text-gray-300">
                   According to verse 1, where was the Word in the beginning?
                 </p>
                 <div className="space-y-2">
-                  <div className="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">
+                  <div className="rounded-xl border-2 border-gray-600 px-4 py-3.5 text-sm text-gray-400">
                     In heaven
                   </div>
-                  <div className="rounded-md border-2 border-emerald-500 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-500 dark:bg-emerald-900/30 dark:text-emerald-400">
-                    With God
+                  <div className="flex items-center gap-2 rounded-xl border-2 border-emerald-500 bg-emerald-900/20 px-4 py-3.5 text-sm font-medium text-gray-300">
+                    <span className="text-emerald-400">✓</span> With God
                   </div>
-                  <div className="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">
+                  <div className="rounded-xl border-2 border-gray-600 px-4 py-3.5 text-sm text-gray-400">
                     On earth
                   </div>
                 </div>
