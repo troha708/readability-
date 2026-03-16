@@ -16,8 +16,8 @@ export default function Home() {
       </nav>
 
       {/* Hero — two-column layout */}
-      <section className="mx-auto max-w-6xl px-6 pb-20 pt-12 lg:flex lg:items-center lg:gap-16 lg:pt-20">
-        <div className="lg:flex-1">
+      <section className="mx-auto max-w-6xl px-6 pb-20 pt-6 lg:flex lg:items-stretch lg:gap-16 lg:pt-8">
+        <div className="flex flex-col justify-center lg:flex-1">
           <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-5xl lg:text-6xl">
             Readability
           </h1>
@@ -27,7 +27,7 @@ export default function Home() {
           </p>
           <Link
             href="/try"
-            className="mt-10 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-700 hover:shadow-xl hover:shadow-emerald-500/30 active:scale-[0.98]"
+            className="mt-10 w-fit inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-700 hover:shadow-xl hover:shadow-emerald-500/30 active:scale-[0.98]"
           >
             Start Reading
             <span aria-hidden="true">→</span>
@@ -202,8 +202,9 @@ export default function Home() {
         </div>
 
         {/* Stat line */}
-        <p className="mt-10 text-center text-sm font-medium text-emerald-600 dark:text-emerald-400">
-          1,300+ comprehension questions across every New Testament book
+        <p className="mt-10 text-center text-sm font-medium text-gray-900 dark:text-white">
+          <span className="font-bold text-emerald-500 dark:text-emerald-400">1,300+</span>{" "}
+          comprehension questions across every New Testament book
         </p>
       </section>
 
