@@ -22,16 +22,20 @@ export default function Home() {
             Readability
           </h1>
           <p className="mt-6 max-w-lg text-lg leading-relaxed text-gray-500 dark:text-gray-400">
-            Build your daily Bible reading habit. Comprehension questions. Real
-            understanding.
+            Read the Bible. Actually remember it.
           </p>
-          <Link
-            href="/try"
-            className="mt-10 w-fit inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-700 hover:shadow-xl hover:shadow-emerald-500/30 active:scale-[0.98]"
-          >
-            Start Reading
-            <span aria-hidden="true">→</span>
-          </Link>
+          <div className="mt-10 inline-flex flex-col items-center self-start">
+            <Link
+              href="/try"
+              className="w-fit inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-700 hover:shadow-xl hover:shadow-emerald-500/30 active:scale-[0.98]"
+            >
+              Start Reading
+              <span aria-hidden="true">→</span>
+            </Link>
+            <p className="mt-3 w-full text-center text-sm text-gray-500 dark:text-gray-400">
+              Free. No account required.
+            </p>
+          </div>
         </div>
 
         {/* Browser mockup preview — dark theme, matches design */}
