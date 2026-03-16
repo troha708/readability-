@@ -11,6 +11,7 @@ import {
   markChapterComplete,
   markReadingComplete,
 } from "@/lib/progress-service";
+import { Logo } from "@/components/logo";
 import { FormattedChunkText } from "./format-chunk-text";
 
 type VersionInfo = { abbr: string; name: string };
@@ -188,6 +189,8 @@ export function ChunkReader({
       {/* Sticky header */}
       <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
         <div className="mx-auto flex max-w-2xl items-center gap-3">
+          <Logo compact />
+          <div className="h-4 w-px shrink-0 bg-gray-200 dark:bg-gray-600" />
           <button
             onClick={() => router.back()}
             className="shrink-0 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-400"

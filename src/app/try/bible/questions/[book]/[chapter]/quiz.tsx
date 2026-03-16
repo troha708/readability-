@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Logo } from "@/components/logo";
 import { useEffect, useState } from "react";
 import { markQuizComplete } from "@/lib/progress-service";
 
@@ -287,12 +288,16 @@ export function Quiz({
       <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
         <div className="mx-auto max-w-2xl">
           <div className="flex items-center justify-between">
-            <Link
-              href="/try/bible/start"
-              className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            >
-              ←
-            </Link>
+            <div className="flex items-center gap-3">
+              <Logo compact />
+              <div className="h-4 w-px shrink-0 bg-gray-200 dark:bg-gray-600" />
+              <Link
+                href="/try/bible/start"
+                className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              >
+                ←
+              </Link>
+            </div>
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
               {bookName} {chapterNumber}
             </span>

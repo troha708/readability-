@@ -14,6 +14,7 @@ import {
   getStreakInfo,
 } from "@/lib/progress-service";
 import { AuthButton } from "@/components/auth-button";
+import { Logo } from "@/components/logo";
 import { useUser } from "@/hooks/useUser";
 
 const BIBLE_BOOK_ORDER = [
@@ -381,8 +382,9 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
   return (
     <main className="min-h-screen px-4 py-12">
       <div className="mx-auto max-w-2xl">
-        {/* Auth bar */}
-        <div className="mb-4 flex justify-end">
+        {/* Navbar */}
+        <div className="mb-4 flex items-center justify-between">
+          <Logo />
           <AuthButton />
         </div>
 
