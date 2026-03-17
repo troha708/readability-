@@ -159,6 +159,13 @@ export function Quiz({
               Back to Roadmap
             </Link>
           </div>
+
+          <p className="mt-8 text-xs text-gray-400 dark:text-gray-500">
+            Feedback?{" "}
+            <a href="mailto:readablebibleapp@gmail.com" className="underline hover:text-gray-600 dark:hover:text-gray-400">
+              readablebibleapp@gmail.com
+            </a>
+          </p>
         </div>
       </div>
     );
@@ -244,6 +251,13 @@ export function Quiz({
               </Link>
             )}
           </div>
+
+          <p className="mt-8 text-xs text-gray-400 dark:text-gray-500">
+            Feedback?{" "}
+            <a href="mailto:readablebibleapp@gmail.com" className="underline hover:text-gray-600 dark:hover:text-gray-400">
+              readablebibleapp@gmail.com
+            </a>
+          </p>
         </div>
       </div>
     );
@@ -432,6 +446,13 @@ export function Quiz({
               </button>
             </div>
           )}
+
+          <p className="mt-8 text-center text-xs text-gray-400 dark:text-gray-500">
+            Feedback?{" "}
+            <a href="mailto:readablebibleapp@gmail.com" className="underline hover:text-gray-600 dark:hover:text-gray-400">
+              readablebibleapp@gmail.com
+            </a>
+          </p>
         </div>
       </div>
     </div>

@@ -217,6 +217,12 @@ export default function Home() {
         <p className="text-center text-xs text-gray-500 dark:text-gray-400">
           © {new Date().getFullYear()} Readability
         </p>
+        <p className="mt-2 text-center text-xs text-gray-400 dark:text-gray-500">
+          Feedback?{" "}
+          <a href="mailto:readablebibleapp@gmail.com" className="underline hover:text-gray-600 dark:hover:text-gray-400">
+            readablebibleapp@gmail.com
+          </a>
+        </p>
       </footer>
     </main>
   );

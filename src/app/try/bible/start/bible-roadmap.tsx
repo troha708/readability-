@@ -493,6 +493,13 @@ day streak
             ← Back to book selection
           </Link>
         </div>
+
+        <p className="mt-8 text-center text-xs text-gray-400 dark:text-gray-500">
+          Feedback?{" "}
+          <a href="mailto:readablebibleapp@gmail.com" className="underline hover:text-gray-600 dark:hover:text-gray-400">
+            readablebibleapp@gmail.com
+          </a>
+        </p>
       </div>
     </main>
   );

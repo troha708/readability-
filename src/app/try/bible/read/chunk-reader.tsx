@@ -407,6 +407,12 @@ export function ChunkReader({
             I&apos;ve finished reading ✓
           </button>
         </div>
+        <p className="mx-auto mt-4 max-w-2xl text-center text-xs text-gray-400 dark:text-gray-500">
+          Feedback?{" "}
+          <a href="mailto:readablebibleapp@gmail.com" className="underline hover:text-gray-600 dark:hover:text-gray-400">
+            readablebibleapp@gmail.com
+          </a>
+        </p>
       </footer>
     </div>
   );
