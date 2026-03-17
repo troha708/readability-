@@ -380,17 +380,17 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
   }
 
   return (
-    <main className="min-h-screen px-4 py-12">
+    <main className="min-h-screen px-4 py-8">
       <div className="mx-auto max-w-2xl">
         {/* Navbar */}
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-2 flex items-center justify-between">
           <Logo />
           <AuthButton />
         </div>
 
         {/* Sign-in banner for guests */}
         {!userLoading && !user && (
-          <div className="mb-6 flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 dark:border-blue-800 dark:bg-blue-950/40">
+          <div className="mb-4 flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 dark:border-blue-800 dark:bg-blue-950/40">
             <svg className="h-4 w-4 flex-shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
             </svg>
@@ -404,20 +404,17 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
         )}
 
         {/* Header */}
-        <div className="mb-10 text-center">
+        <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             The Bible
           </h1>
-          <p className="mt-2 text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-gray-500 dark:text-gray-400">
             Navigate the complete Bible. Your journey begins at John.
           </p>
-          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-            Version: {versionAbbr}
-          </p>
 
-          {/* Streak counter */}
-          <div className="mt-5 inline-flex flex-col items-center gap-1">
-            <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-4 py-2 dark:bg-amber-950/40">
+          {/* Streak + Mode toggle row */}
+          <div className="mt-3 flex items-center justify-center gap-4">
+            <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-4 py-1.5 dark:bg-amber-950/40">
               <svg
                 className={`h-5 w-5 ${streak.streak > 0 ? "text-amber-500" : "text-gray-300 dark:text-gray-600"}`}
                 viewBox="0 0 24 24"
@@ -432,17 +429,7 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                 {streak.streak === 1 ? "day" : "days"}
               </span>
             </div>
-            {!streak.completedToday && (
-              <p className="text-[0.65rem] font-medium text-amber-600 dark:text-amber-500">
-                {streak.streak > 0
-                  ? "Complete a chapter to keep your streak alive!"
-                  : "Complete a chapter to start your streak!"}
-              </p>
-            )}
-          </div>
 
-          {/* Reading mode toggle */}
-          <div className="mt-4 flex flex-col items-center gap-1.5">
             <div className="inline-flex rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
               <button
                 onClick={() => {
@@ -471,20 +458,23 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                 Read Mode
               </button>
             </div>
-            <p className="text-[0.65rem] text-gray-400 dark:text-gray-500">
-              {mode === "study"
-                ? "Comprehension questions after each chapter"
-                : "Read without questions"}
-            </p>
           </div>
+
+          {!streak.completedToday && (
+            <p className="mt-1.5 text-[0.65rem] font-medium text-amber-600 dark:text-amber-500">
+              {streak.streak > 0
+                ? "Complete a chapter to keep your streak alive!"
+                : "Complete a chapter to start your streak!"}
+            </p>
+          )}
 
           {/* Continue Reading button */}
           <Link
             href={readUrl(continueTarget.book, continueTarget.chapter)}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-4 text-lg font-bold text-white shadow-md transition-colors hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700"
+            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700"
           >
             Continue Reading
-            <span className="text-base font-normal text-emerald-200">
+            <span className="text-xs font-normal text-emerald-200">
               {continueTarget.book} {continueTarget.chapter}
             </span>
             <span aria-hidden="true">→</span>
