@@ -426,7 +426,7 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                 {streak.streak}
               </span>
               <span className="text-xs font-medium text-amber-600 dark:text-amber-500">
-                {streak.streak === 1 ? "day" : "days"}
+day streak
               </span>
             </div>
 
