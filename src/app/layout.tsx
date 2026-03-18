@@ -10,12 +10,14 @@ export const metadata: Metadata = {
     description:
       "Free Bible reading app with comprehension questions for every New Testament chapter. Like Duolingo for the Bible.",
     type: "website",
+    images: ["https://readability-gilt.vercel.app/og-image.png"],
   },
   twitter: {
     card: "summary_large_image",
     title: "Readability — Read the Bible. Actually remember it.",
     description:
       "Free Bible reading app with comprehension questions for every New Testament chapter. Like Duolingo for the Bible.",
+    images: ["https://readability-gilt.vercel.app/og-image.png"],
   },
 };
 
