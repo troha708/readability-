@@ -12,7 +12,7 @@ import {
   markReadingComplete,
 } from "@/lib/progress-service";
 import { Logo } from "@/components/logo";
-import { FormattedChunkText } from "./format-chunk-text";
+import { FormattedChunkText, type ExplanationPassage } from "./format-chunk-text";
 
 type VersionInfo = { abbr: string; name: string };
 
@@ -27,6 +27,7 @@ type Props = {
   versionName: string;
   availableVersions: VersionInfo[];
   chapterNumbers: number[];
+  explanations?: ExplanationPassage[] | null;
 };
 
 function SunIcon() {
@@ -57,6 +58,7 @@ export function ChunkReader({
   versionName,
   availableVersions,
   chapterNumbers,
+  explanations,
 }: Props) {
   const router = useRouter();
   const [readProgress, setReadProgress] = useState(0);
@@ -386,7 +388,7 @@ export function ChunkReader({
       <div className="px-4 py-8">
         <div className="mx-auto max-w-2xl">
           <article className="max-w-none" style={{ fontSize: `${fontSize}px` }}>
-            <FormattedChunkText chunkText={chunkText} bionic={bionic} />
+            <FormattedChunkText chunkText={chunkText} bionic={bionic} explanations={explanations ?? undefined} />
           </article>
         </div>
       </div>

@@ -1,6 +1,9 @@
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { ChunkReader } from "./chunk-reader";
+import type { ExplanationPassage } from "./format-chunk-text";
 
 type Props = {
   searchParams: Promise<{
@@ -78,6 +81,24 @@ export default async function BibleReadPage({ searchParams }: Props) {
 
   const hasNextChunk = (chunksInChapter ?? 0) > chunkNum;
 
+  let explanations: ExplanationPassage[] | null = null;
+  try {
+    const slug = bookName.toLowerCase();
+    const explanationPath = join(
+      process.cwd(),
+      "data",
+      "explanations",
+      slug,
+      `${slug}-${chapterNum}-explanations.json`,
+    );
+    if (existsSync(explanationPath)) {
+      const raw = readFileSync(explanationPath, "utf-8");
+      explanations = JSON.parse(raw).passages ?? null;
+    }
+  } catch {
+    // no explanation data for this chapter
+  }
+
   return (
     <ChunkReader
       bookName={bookName}
@@ -95,6 +116,7 @@ export default async function BibleReadPage({ searchParams }: Props) {
         })) ?? []
       }
       chapterNumbers={chapterNumbers}
+      explanations={explanations}
     />
   );
 }
