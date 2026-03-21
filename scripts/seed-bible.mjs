@@ -136,15 +136,22 @@ function buildChunks(blocks) {
 
 // ── Main ─────────────────────────────────────────────────────────────
 
-// Canonical book order (OT + NT). api.bible may use slightly different names,
-// so we normalise when possible and fall back to the file order.
-const OT_COUNT = 39;
+const OT_BOOKS = new Set([
+  "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
+  "Joshua", "Judges", "Ruth", "1 Samuel", "2 Samuel",
+  "1 Kings", "2 Kings", "1 Chronicles", "2 Chronicles",
+  "Ezra", "Nehemiah", "Esther", "Job", "Psalms", "Proverbs",
+  "Ecclesiastes", "Song Of Solomon", "Song of Solomon", "Isaiah", "Jeremiah",
+  "Lamentations", "Ezekiel", "Daniel", "Hosea", "Joel", "Amos",
+  "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk", "Zephaniah",
+  "Haggai", "Zechariah", "Malachi",
+]);
 
 async function ensureBooks(bookNamesFromFiles) {
   const bookIdByName = new Map();
   for (let i = 0; i < bookNamesFromFiles.length; i++) {
     const name = bookNamesFromFiles[i];
-    const testament = i < OT_COUNT ? "OT" : "NT";
+    const testament = OT_BOOKS.has(name) ? "OT" : "NT";
     const { data: book, error } = await supabase
       .from("books")
       .insert({ name, testament })

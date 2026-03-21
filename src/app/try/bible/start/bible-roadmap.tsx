@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getReadingMode,
   setReadingMode,
@@ -17,16 +17,19 @@ import { AuthButton } from "@/components/auth-button";
 import { Logo } from "@/components/logo";
 import { useUser } from "@/hooks/useUser";
 
-const BIBLE_BOOK_ORDER = [
+const OT_BOOK_ORDER = [
   "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
   "Joshua", "Judges", "Ruth", "1 Samuel", "2 Samuel",
   "1 Kings", "2 Kings", "1 Chronicles", "2 Chronicles",
   "Ezra", "Nehemiah", "Esther", "Job", "Psalms", "Proverbs",
-  "Ecclesiastes", "Song of Solomon", "Isaiah", "Jeremiah",
+  "Ecclesiastes", "Song Of Solomon", "Isaiah", "Jeremiah",
   "Lamentations", "Ezekiel", "Daniel", "Hosea", "Joel", "Amos",
   "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk", "Zephaniah",
   "Haggai", "Zechariah", "Malachi",
-  "Matthew", "Mark", "Luke", "John", "Acts",
+];
+
+const NT_READING_ORDER = [
+  "John", "Acts", "Luke", "Mark", "Matthew",
   "Romans", "1 Corinthians", "2 Corinthians", "Galatians",
   "Ephesians", "Philippians", "Colossians",
   "1 Thessalonians", "2 Thessalonians", "1 Timothy", "2 Timothy",
@@ -34,6 +37,8 @@ const BIBLE_BOOK_ORDER = [
   "1 Peter", "2 Peter", "1 John", "2 John", "3 John",
   "Jude", "Revelation",
 ];
+
+const BIBLE_BOOK_ORDER = [...OT_BOOK_ORDER, ...NT_READING_ORDER];
 
 type ChapterInfo = { chapterNumber: number; chunkCount: number };
 
@@ -102,16 +107,13 @@ function PencilIcon({ className }: { className?: string }) {
 
 export function BibleRoadmap({ books, versionAbbr }: Props) {
   const { user, loading: userLoading } = useUser();
-  const [selected, setSelected] = useState<{ book: string; chapter: number }>({
-    book: "John",
-    chapter: 1,
-  });
-  const johnRef = useRef<HTMLDivElement>(null);
   const [readingDone, setReadingDone] = useState<ReadingProgress>({});
   const [quizDone, setQuizDone] = useState<ReadingProgress>({});
   const [timestamps, setTimestamps] = useState<Record<string, string>>({});
   const [mode, setMode] = useState<ReadingMode>("study");
   const [expandedBooks, setExpandedBooks] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["OT", "NT"]));
+  const [showEarlierBooks, setShowEarlierBooks] = useState<Set<string>>(new Set());
   const [continueTarget, setContinueTarget] = useState<{ book: string; chapter: number }>({
     book: "John",
     chapter: 1,
@@ -134,7 +136,6 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
         return !!readProg[key] && !!quizProg[key];
       };
 
-      const inProgress = new Set<string>();
       const sorted = [...books].sort((a, b) => bookSortKey(a.name) - bookSortKey(b.name));
 
       let lastActiveBook: BookInfo | null = null;
@@ -143,12 +144,9 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
         const hasAny = book.chapters.some((ch) => isFullyDone(book.name, ch.chapterNumber));
         const allDone = book.chapters.every((ch) => isFullyDone(book.name, ch.chapterNumber));
         if (hasAny && !allDone) {
-          inProgress.add(book.name);
           lastActiveBook = book;
         }
       }
-      if (inProgress.size === 0) inProgress.add("John");
-      setExpandedBooks(inProgress);
 
       if (lastActiveBook) {
         const firstIncomplete = lastActiveBook.chapters.find(
@@ -158,19 +156,17 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
           book: lastActiveBook.name,
           chapter: firstIncomplete ? firstIncomplete.chapterNumber : 1,
         });
+        setExpandedBooks(new Set([lastActiveBook.name]));
+        const activeTestament = lastActiveBook.testament;
+        setExpandedSections(new Set([activeTestament]));
       } else {
         setContinueTarget({ book: "John", chapter: 1 });
+        setExpandedBooks(new Set(["John"]));
+        setExpandedSections(new Set(["NT"]));
       }
     }
     init();
   }, [books]);
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      johnRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 150);
-    return () => clearTimeout(t);
-  }, []);
 
   const sorted = [...books].sort((a, b) => bookSortKey(a.name) - bookSortKey(b.name));
   const otBooks = sorted.filter((b) => b.testament === "OT");
@@ -185,25 +181,87 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
     });
   }
 
+  function toggleSection(testament: string) {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(testament)) next.delete(testament);
+      else next.add(testament);
+      return next;
+    });
+  }
+
+  function toggleEarlierBooks(testament: string) {
+    setShowEarlierBooks((prev) => {
+      const next = new Set(prev);
+      if (next.has(testament)) next.delete(testament);
+      else next.add(testament);
+      return next;
+    });
+  }
+
   function readUrl(book: string, chapter: number) {
     return `/try/bible/read?book=${encodeURIComponent(book)}&chapter=${chapter}&chunk=1&version=${versionAbbr}`;
   }
 
-  function renderSection(label: string, sectionBooks: BookInfo[]) {
+  function renderSection(label: string, testament: string, sectionBooks: BookInfo[]) {
+    const isSectionExpanded = expandedSections.has(testament);
+    const activeIndex = sectionBooks.findIndex((b) => b.name === continueTarget.book);
+    const activeBookInSection = activeIndex >= 0;
+    const isShowingEarlier = showEarlierBooks.has(testament) || !activeBookInSection;
+    const hiddenAboveCount = activeBookInSection && !isShowingEarlier ? activeIndex : 0;
+    const visibleBooks = isShowingEarlier
+      ? sectionBooks
+      : sectionBooks.slice(activeIndex);
+
     return (
       <div className="mb-4">
-        <div className="mb-4 flex items-center gap-3">
+        <button
+          onClick={() => toggleSection(testament)}
+          className="mb-4 flex w-full items-center gap-3"
+        >
           <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
-          <span className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+          <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
             {label}
+            {!isSectionExpanded && (
+              <span className="normal-case tracking-normal">
+                · {sectionBooks.length} books
+              </span>
+            )}
+            <svg
+              className={`h-3 w-3 transition-transform duration-200 ${isSectionExpanded ? "rotate-90" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
           </span>
           <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
-        </div>
+        </button>
+        {!isSectionExpanded ? null : (
+        <>
+        {hiddenAboveCount > 0 && (
+          <button
+            onClick={() => toggleEarlierBooks(testament)}
+            className="mb-1 ml-3 flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+          >
+            <svg
+              className="h-3 w-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+            Show {hiddenAboveCount} earlier {hiddenAboveCount === 1 ? "book" : "books"}
+          </button>
+        )}
         <div className="relative ml-3 border-l-2 border-gray-200 dark:border-gray-700">
-          {sectionBooks.map((book) => {
-            const isJohn = book.name === "John";
+          {visibleBooks.map((book) => {
+            const isActiveBook = book.name === continueTarget.book;
             const hasChapters = book.chapters.length > 0;
-            const isSelectedBook = selected.book === book.name;
             const isStudy = mode === "study";
             const completedCount = book.chapters.filter((ch) => {
               const key = `${book.name}:${ch.chapterNumber}`;
@@ -212,14 +270,10 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
             }).length;
             const allComplete = hasChapters && completedCount === book.chapters.length;
             const isExpanded = expandedBooks.has(book.name);
-            const selectedChapter = book.chapters.find(
-              (c) => c.chapterNumber === selected.chapter,
-            );
 
             return (
               <div
                 key={book.name}
-                ref={isJohn ? johnRef : undefined}
                 className="relative py-2.5 pl-8"
               >
                 {/* Timeline dot */}
@@ -227,7 +281,7 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                   className={`absolute -left-[9px] top-3.5 h-4 w-4 rounded-full border-2 ${
                     allComplete
                       ? "border-emerald-500 bg-emerald-500"
-                      : isJohn
+                      : isActiveBook
                         ? "border-emerald-500 bg-emerald-500"
                         : hasChapters
                           ? "border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-900"
@@ -262,9 +316,9 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                   >
                     {book.name}
                   </h3>
-                  {isJohn && (
+                  {isActiveBook && (
                     <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
-                      Start here
+                      Up next
                     </span>
                   )}
                   {!isExpanded && hasChapters && (
@@ -275,106 +329,83 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
                   )}
                 </button>
 
-                {/* Collapsible chapter grid + begin button */}
+                {/* Collapsible chapter grid */}
                 {isExpanded && hasChapters && (
-                  <>
-                    <div className="mt-1.5 flex flex-wrap gap-1">
-                      {book.chapters.map((ch) => {
-                        const isSel =
-                          isSelectedBook && ch.chapterNumber === selected.chapter;
-                        const key = `${book.name}:${ch.chapterNumber}`;
-                        const readComplete = !!readingDone[key];
-                        const quizComplete = !!quizDone[key];
-                        const isComplete = isStudy
-                          ? readComplete && quizComplete
-                          : readComplete;
-                        const age = isComplete ? getCompletionAge(timestamps[key]) : null;
-                        const ageStyle = age ? AGE_STYLES[age] : null;
-                        return (
-                          <button
-                            key={ch.chapterNumber}
-                            onClick={() =>
-                              setSelected({
-                                book: book.name,
-                                chapter: ch.chapterNumber,
-                              })
-                            }
-                            className={`relative flex ${
-                              isStudy ? "h-11 min-w-[2.25rem] flex-col gap-0.5" : "h-7 min-w-[1.75rem]"
-                            } items-center justify-center rounded px-1 text-xs tabular-nums transition-colors ${
-                              isSel
-                                ? "bg-emerald-500 font-semibold text-white shadow-sm"
-                                : ageStyle
-                                  ? ageStyle.button
-                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-                            }`}
-                          >
-                            <span className={isStudy ? "leading-none" : ""}>
-                              {ch.chapterNumber}
-                            </span>
-                            {isStudy && (
-                              <span className="flex items-center gap-1">
-                                <BookIcon
-                                  className={`h-3 w-3 ${
-                                    isSel
-                                      ? readComplete ? "text-white" : "text-emerald-200"
-                                      : readComplete
-                                        ? (ageStyle?.icon ?? "text-emerald-500 dark:text-emerald-400")
-                                        : "text-gray-300 dark:text-gray-600"
-                                  }`}
-                                />
-                                <PencilIcon
-                                  className={`h-3 w-3 ${
-                                    isSel
-                                      ? quizComplete ? "text-white" : "text-emerald-200"
-                                      : quizComplete
-                                        ? (ageStyle?.icon ?? "text-emerald-500 dark:text-emerald-400")
-                                        : "text-gray-300 dark:text-gray-600"
-                                  }`}
-                                />
-                              </span>
-                            )}
-                            {ch.chunkCount > 1 && (
-                              <span
-                                className={`absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[0.5rem] font-bold leading-none ${
-                                  isSel
-                                    ? "bg-emerald-700 text-emerald-100"
-                                    : ageStyle
-                                      ? ageStyle.badge
-                                      : "bg-gray-300 text-gray-600 dark:bg-gray-600 dark:text-gray-300"
-                                }`}
-                              >
-                                {ch.chunkCount}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {isSelectedBook && (
-                      <div className="mt-3 flex items-center gap-3">
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {book.chapters.map((ch) => {
+                      const key = `${book.name}:${ch.chapterNumber}`;
+                      const readComplete = !!readingDone[key];
+                      const quizComplete = !!quizDone[key];
+                      const isComplete = isStudy
+                        ? readComplete && quizComplete
+                        : readComplete;
+                      const isNextUnread =
+                        isActiveBook && ch.chapterNumber === continueTarget.chapter && !isComplete;
+                      const age = isComplete ? getCompletionAge(timestamps[key]) : null;
+                      const ageStyle = age ? AGE_STYLES[age] : null;
+                      return (
                         <Link
-                          href={readUrl(book.name, selected.chapter)}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
+                          key={ch.chapterNumber}
+                          href={readUrl(book.name, ch.chapterNumber)}
+                          className={`relative flex ${
+                            isStudy ? "h-11 min-w-[2.25rem] flex-col gap-0.5" : "h-7 min-w-[1.75rem]"
+                          } items-center justify-center rounded px-1 text-xs tabular-nums transition-colors ${
+                            isNextUnread
+                              ? "bg-green-500 font-bold text-white ring-2 ring-green-400 shadow-md shadow-green-500/25 dark:bg-green-400 dark:text-green-950 dark:ring-green-300 dark:shadow-green-400/20"
+                              : ageStyle
+                                ? ageStyle.button
+                                : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                          }`}
                         >
-                          Begin Reading
-                          <span aria-hidden="true">→</span>
+                          <span className={isStudy ? "leading-none" : ""}>
+                            {ch.chapterNumber}
+                          </span>
+                          {isStudy && (
+                            <span className="flex items-center gap-1">
+                              <BookIcon
+                                className={`h-3 w-3 ${
+                                  isNextUnread
+                                    ? readComplete ? "text-white" : "text-green-200 dark:text-green-700"
+                                    : readComplete
+                                      ? (ageStyle?.icon ?? "text-emerald-500 dark:text-emerald-400")
+                                      : "text-gray-300 dark:text-gray-600"
+                                }`}
+                              />
+                              <PencilIcon
+                                className={`h-3 w-3 ${
+                                  isNextUnread
+                                    ? quizComplete ? "text-white" : "text-green-200 dark:text-green-700"
+                                    : quizComplete
+                                      ? (ageStyle?.icon ?? "text-emerald-500 dark:text-emerald-400")
+                                      : "text-gray-300 dark:text-gray-600"
+                                }`}
+                              />
+                            </span>
+                          )}
+                          {ch.chunkCount > 1 && (
+                            <span
+                              className={`absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[0.5rem] font-bold leading-none ${
+                                isNextUnread
+                                  ? "bg-green-700 text-green-100 dark:bg-green-600 dark:text-green-100"
+                                  : ageStyle
+                                    ? ageStyle.badge
+                                    : "bg-gray-300 text-gray-600 dark:bg-gray-600 dark:text-gray-300"
+                              }`}
+                            >
+                              {ch.chunkCount}
+                            </span>
+                          )}
                         </Link>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {book.name} {selected.chapter}
-                          {selectedChapter && selectedChapter.chunkCount > 1
-                            ? ` · ${selectedChapter.chunkCount} parts`
-                            : ""}
-                        </span>
-                      </div>
-                    )}
-                  </>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             );
           })}
         </div>
+        </>
+        )}
       </div>
     );
   }
@@ -481,8 +512,8 @@ day streak
           </Link>
         </div>
 
-        {renderSection("Old Testament", otBooks)}
-        {renderSection("New Testament", ntBooks)}
+        {renderSection("New Testament", "NT", ntBooks)}
+        {renderSection("Old Testament", "OT", otBooks)}
 
         {/* Back link */}
         <div className="mt-6 text-center">
