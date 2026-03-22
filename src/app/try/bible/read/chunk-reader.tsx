@@ -92,7 +92,6 @@ export function ChunkReader({
   explanations,
 }: Props) {
   const router = useRouter();
-  const [readProgress, setReadProgress] = useState(0);
   const [versionOpen, setVersionOpen] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
   const versionRef = useRef<HTMLDivElement>(null);
@@ -210,28 +209,6 @@ export function ChunkReader({
       router.back();
     }
   }
-
-  const updateProgress = useCallback(() => {
-    const scrollTop = window.scrollY;
-    const docHeight = document.documentElement.scrollHeight;
-    const winHeight = window.innerHeight;
-    const maxScroll = docHeight - winHeight;
-    if (maxScroll <= 0) {
-      setReadProgress(100);
-      return;
-    }
-    setReadProgress(Math.min(100, Math.round((scrollTop / maxScroll) * 100)));
-  }, []);
-
-  useEffect(() => {
-    updateProgress();
-    window.addEventListener("scroll", updateProgress, { passive: true });
-    window.addEventListener("resize", updateProgress);
-    return () => {
-      window.removeEventListener("scroll", updateProgress);
-      window.removeEventListener("resize", updateProgress);
-    };
-  }, [updateProgress]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -464,7 +441,7 @@ export function ChunkReader({
           </div>
         </div>
 
-        {/* Chapter strip */}
+        {/* Chapter strip - full width for horizontal scrolling */}
         <div
           ref={chapterStripRef}
           style={{
@@ -473,8 +450,13 @@ export function ChunkReader({
             overflowX: "auto",
             gap: "4px",
             marginTop: "8px",
+            paddingTop: "8px",
             paddingBottom: "2px",
-            maxWidth: "100%",
+            marginLeft: "-16px",
+            marginRight: "-16px",
+            paddingLeft: "16px",
+            paddingRight: "16px",
+            justifyContent: "center",
             WebkitOverflowScrolling: "touch",
             scrollbarWidth: "none",
             msOverflowStyle: "none",
@@ -493,15 +475,6 @@ export function ChunkReader({
           ))}
         </div>
 
-        {/* Progress bar */}
-        <div className="mx-auto mt-2 max-w-2xl">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-            <div
-              className="h-full rounded-full bg-emerald-500 transition-[width] duration-100"
-              style={{ width: `${readProgress}%` }}
-            />
-          </div>
-        </div>
       </header>
 
       {/* Content */}
