@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   getReadingMode,
   setReadingMode,
@@ -10,9 +10,38 @@ import {
 import {
   markChapterComplete,
   markReadingComplete,
+  loadAllProgress,
 } from "@/lib/progress-service";
 import { Logo } from "@/components/logo";
 import { FormattedChunkText, type ExplanationPassage } from "./format-chunk-text";
+
+const BIBLE_BOOK_ORDER = [
+  "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
+  "Joshua", "Judges", "Ruth", "1 Samuel", "2 Samuel",
+  "1 Kings", "2 Kings", "1 Chronicles", "2 Chronicles",
+  "Ezra", "Nehemiah", "Esther", "Job", "Psalms", "Proverbs",
+  "Ecclesiastes", "Song Of Solomon", "Isaiah", "Jeremiah",
+  "Lamentations", "Ezekiel", "Daniel", "Hosea", "Joel", "Amos",
+  "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk", "Zephaniah",
+  "Haggai", "Zechariah", "Malachi",
+  "John", "Acts", "Luke", "Mark", "Matthew",
+  "Romans", "1 Corinthians", "2 Corinthians", "Galatians",
+  "Ephesians", "Philippians", "Colossians",
+  "1 Thessalonians", "2 Thessalonians", "1 Timothy", "2 Timothy",
+  "Titus", "Philemon", "Hebrews", "James",
+  "1 Peter", "2 Peter", "1 John", "2 John", "3 John",
+  "Jude", "Revelation",
+];
+
+type CompletionAge = "recent" | "fading" | "old";
+
+function getCompletionAge(timestamp: string | undefined): CompletionAge {
+  if (!timestamp) return "old";
+  const days = (Date.now() - new Date(timestamp).getTime()) / (1000 * 60 * 60 * 24);
+  if (days <= 7) return "recent";
+  if (days <= 30) return "fading";
+  return "old";
+}
 
 type VersionInfo = { abbr: string; name: string };
 
@@ -27,6 +56,7 @@ type Props = {
   versionName: string;
   availableVersions: VersionInfo[];
   chapterNumbers: number[];
+  allBookNames: string[];
   explanations?: ExplanationPassage[] | null;
 };
 
@@ -58,16 +88,22 @@ export function ChunkReader({
   versionName,
   availableVersions,
   chapterNumbers,
+  allBookNames,
   explanations,
 }: Props) {
   const router = useRouter();
   const [readProgress, setReadProgress] = useState(0);
   const [versionOpen, setVersionOpen] = useState(false);
-  const [chapterOpen, setChapterOpen] = useState(false);
+  const [bookOpen, setBookOpen] = useState(false);
   const versionRef = useRef<HTMLDivElement>(null);
-  const chapterRef = useRef<HTMLDivElement>(null);
+  const bookRef = useRef<HTMLDivElement>(null);
   const fontSizeRef = useRef<HTMLDivElement>(null);
   const [fontSizeOpen, setFontSizeOpen] = useState(false);
+  const chapterStripRef = useRef<HTMLDivElement>(null);
+  const activeChapterRef = useRef<HTMLButtonElement>(null);
+  const [chapterTimestamps, setChapterTimestamps] = useState<Record<string, string>>({});
+  const [readDone, setReadDone] = useState<Record<string, boolean>>({});
+  const [quizDone, setQuizDone] = useState<Record<string, boolean>>({});
 
   const [dark, setDark] = useState(false);
   const [bionic, setBionic] = useState(false);
@@ -78,6 +114,12 @@ export function ChunkReader({
   const FONT_SIZE_MAX = 28;
   const FONT_SIZE_STEP = 2;
 
+  const sortedBooks = [...allBookNames].sort((a, b) => {
+    const ai = BIBLE_BOOK_ORDER.indexOf(a);
+    const bi = BIBLE_BOOK_ORDER.indexOf(b);
+    return (ai >= 0 ? ai : 999) - (bi >= 0 ? bi : 999);
+  });
+
   useEffect(() => {
     setDark(document.documentElement.classList.contains("dark"));
     setBionic(localStorage.getItem("bionic") === "true");
@@ -87,6 +129,37 @@ export function ChunkReader({
       const n = parseInt(saved, 10);
       if (n >= FONT_SIZE_MIN && n <= FONT_SIZE_MAX) setFontSize(n);
     }
+  }, []);
+
+  useEffect(() => {
+    loadAllProgress().then(({ read, quiz, timestamps }) => {
+      setReadDone(read);
+      setQuizDone(quiz);
+      setChapterTimestamps(timestamps);
+    });
+  }, []);
+
+  useEffect(() => {
+    const el = activeChapterRef.current;
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }
+  }, [chapterNumber]);
+
+  // Diagnostic: log computed overflow of every ancestor so we can identify what clips the strip
+  useEffect(() => {
+    if (!chapterStripRef.current) return;
+    let node: HTMLElement | null = chapterStripRef.current.parentElement;
+    const lines: string[] = [];
+    while (node) {
+      const s = window.getComputedStyle(node);
+      lines.push(
+        `<${node.tagName.toLowerCase()} class="${node.className.slice(0, 80)}">` +
+        `  overflow=${s.overflow}  overflowX=${s.overflowX}  overflowY=${s.overflowY}  contain=${s.contain}`
+      );
+      node = node.parentElement;
+    }
+    console.log("[chapter-strip ancestors]\n" + lines.join("\n"));
   }, []);
 
   function toggleTheme() {
@@ -164,8 +237,8 @@ export function ChunkReader({
     function handleClick(e: MouseEvent) {
       if (versionRef.current && !versionRef.current.contains(e.target as Node))
         setVersionOpen(false);
-      if (chapterRef.current && !chapterRef.current.contains(e.target as Node))
-        setChapterOpen(false);
+      if (bookRef.current && !bookRef.current.contains(e.target as Node))
+        setBookOpen(false);
       if (fontSizeRef.current && !fontSizeRef.current.contains(e.target as Node))
         setFontSizeOpen(false);
     }
@@ -186,10 +259,35 @@ export function ChunkReader({
     return `/try/bible/read?book=${b}&chapter=${c}&chunk=${k}&version=${v}`;
   }
 
+  function isChapterDone(chNum: number): boolean {
+    const key = `${bookName}:${chNum}`;
+    if (mode === "read") return !!readDone[key];
+    return !!readDone[key] && !!quizDone[key];
+  }
+
+  function getChapterButtonStyle(chNum: number): string {
+    const isCurrent = chNum === chapterNumber;
+    const isCompleted = isChapterDone(chNum);
+
+    if (isCurrent) {
+      return "bg-emerald-500 text-white ring-2 ring-emerald-400 shadow-sm font-bold";
+    }
+    if (isCompleted) {
+      const age = getCompletionAge(chapterTimestamps[`${bookName}:${chNum}`]);
+      if (age === "recent")
+        return "bg-emerald-100 text-emerald-700 ring-1 ring-inset ring-emerald-300 font-semibold dark:bg-emerald-600 dark:text-white dark:ring-emerald-500";
+      if (age === "fading")
+        return "bg-emerald-50 text-emerald-600/60 ring-1 ring-inset ring-emerald-200 font-semibold dark:bg-emerald-800 dark:text-emerald-100 dark:ring-emerald-700";
+      return "bg-emerald-50/60 text-emerald-500/50 ring-1 ring-inset ring-emerald-200/60 font-semibold dark:bg-emerald-900 dark:text-emerald-200 dark:ring-emerald-800";
+    }
+    return "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700";
+  }
+
   return (
     <div className="min-h-screen">
       {/* Sticky header */}
-      <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
+      <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 px-4 py-3 dark:border-gray-700 dark:bg-gray-900/95">
+        {/* Controls row */}
         <div className="mx-auto flex max-w-2xl items-center gap-3">
           <Logo compact />
           <div className="h-4 w-px shrink-0 bg-gray-200 dark:bg-gray-600" />
@@ -200,42 +298,35 @@ export function ChunkReader({
             ←
           </button>
 
-          {/* Book + Chapter picker */}
-          <div ref={chapterRef} className="relative">
+          {/* Book selector */}
+          <div ref={bookRef} className="relative">
             <button
               onClick={() => {
-                setChapterOpen((o) => !o);
+                setBookOpen((o) => !o);
                 setVersionOpen(false);
+                setFontSizeOpen(false);
               }}
               className="rounded-md border border-gray-300 px-2.5 py-1 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
             >
-              {bookName} {chapterNumber}
-              {totalChunks > 1 && (
-                <span className="ml-1 text-gray-400">
-                  ({chunkNumber}/{totalChunks})
-                </span>
-              )}
+              {bookName}
               <span className="ml-1 text-gray-400">▾</span>
             </button>
-            {chapterOpen && (
-              <div className="absolute left-0 top-full z-20 mt-1 max-h-64 w-48 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                  {bookName}
-                </div>
-                {chapterNumbers.map((num) => (
+            {bookOpen && (
+              <div className="absolute left-0 top-full z-20 mt-1 max-h-64 w-44 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                {sortedBooks.map((name) => (
                   <button
-                    key={num}
+                    key={name}
                     onClick={() => {
-                      setChapterOpen(false);
-                      router.push(readUrl({ chapter: num, chunk: 1 }));
+                      setBookOpen(false);
+                      router.push(readUrl({ book: name, chapter: 1, chunk: 1 }));
                     }}
                     className={`block w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      num === chapterNumber
+                      name === bookName
                         ? "font-semibold text-emerald-600"
                         : "text-gray-700 dark:text-gray-300"
                     }`}
                   >
-                    Chapter {num}
+                    {name}
                   </button>
                 ))}
               </div>
@@ -250,7 +341,7 @@ export function ChunkReader({
               onClick={() => {
                 setFontSizeOpen((o) => !o);
                 setVersionOpen(false);
-                setChapterOpen(false);
+                setBookOpen(false);
               }}
               aria-label="Adjust font size"
               className="rounded-md p-1.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
@@ -339,7 +430,7 @@ export function ChunkReader({
             <button
               onClick={() => {
                 setVersionOpen((o) => !o);
-                setChapterOpen(false);
+                setBookOpen(false);
               }}
               className="rounded-md border border-gray-300 px-2.5 py-1 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
             >
@@ -371,6 +462,35 @@ export function ChunkReader({
               </div>
             )}
           </div>
+        </div>
+
+        {/* Chapter strip */}
+        <div
+          ref={chapterStripRef}
+          style={{
+            display: "flex",
+            flexWrap: "nowrap",
+            overflowX: "auto",
+            gap: "4px",
+            marginTop: "8px",
+            paddingBottom: "2px",
+            maxWidth: "100%",
+            WebkitOverflowScrolling: "touch",
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          } as React.CSSProperties}
+        >
+          {chapterNumbers.map((num) => (
+            <button
+              key={num}
+              ref={num === chapterNumber ? activeChapterRef : undefined}
+              onClick={() => router.push(readUrl({ chapter: num, chunk: 1 }))}
+              style={{ flexShrink: 0, width: "28px", height: "28px" }}
+              className={`flex items-center justify-center rounded text-xs transition-all ${getChapterButtonStyle(num)}`}
+            >
+              {num}
+            </button>
+          ))}
         </div>
 
         {/* Progress bar */}

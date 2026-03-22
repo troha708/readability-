@@ -55,6 +55,13 @@ export default async function BibleReadPage({ searchParams }: Props) {
 
   const chapterNumbers = chaptersForBook?.map((c) => c.chapter_number) ?? [];
 
+  // Fetch all book names for the book selector dropdown
+  const { data: allBooksData } = await supabase
+    .from("books")
+    .select("name");
+
+  const allBookNames = allBooksData?.map((b) => b.name) ?? [];
+
   const { data: chapter } = await supabase
     .from("chapters")
     .select("id")
@@ -116,6 +123,7 @@ export default async function BibleReadPage({ searchParams }: Props) {
         })) ?? []
       }
       chapterNumbers={chapterNumbers}
+      allBookNames={allBookNames}
       explanations={explanations}
     />
   );
