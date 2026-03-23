@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   getReadingMode,
   setReadingMode,
@@ -14,24 +14,7 @@ import {
 } from "@/lib/progress-service";
 import { Logo } from "@/components/logo";
 import { FormattedChunkText, type ExplanationPassage } from "./format-chunk-text";
-
-const BIBLE_BOOK_ORDER = [
-  "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
-  "Joshua", "Judges", "Ruth", "1 Samuel", "2 Samuel",
-  "1 Kings", "2 Kings", "1 Chronicles", "2 Chronicles",
-  "Ezra", "Nehemiah", "Esther", "Job", "Psalms", "Proverbs",
-  "Ecclesiastes", "Song Of Solomon", "Isaiah", "Jeremiah",
-  "Lamentations", "Ezekiel", "Daniel", "Hosea", "Joel", "Amos",
-  "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk", "Zephaniah",
-  "Haggai", "Zechariah", "Malachi",
-  "John", "Acts", "Luke", "Mark", "Matthew",
-  "Romans", "1 Corinthians", "2 Corinthians", "Galatians",
-  "Ephesians", "Philippians", "Colossians",
-  "1 Thessalonians", "2 Thessalonians", "1 Timothy", "2 Timothy",
-  "Titus", "Philemon", "Hebrews", "James",
-  "1 Peter", "2 Peter", "1 John", "2 John", "3 John",
-  "Jude", "Revelation",
-];
+import { bibleBookSortIndex } from "@/lib/bible-book-order";
 
 type CompletionAge = "recent" | "fading" | "old";
 
@@ -100,6 +83,7 @@ export function ChunkReader({
   const [fontSizeOpen, setFontSizeOpen] = useState(false);
   const chapterStripRef = useRef<HTMLDivElement>(null);
   const activeChapterRef = useRef<HTMLButtonElement>(null);
+  const [chapterStripJustify, setChapterStripJustify] = useState<"center" | "flex-start">("center");
   const [chapterTimestamps, setChapterTimestamps] = useState<Record<string, string>>({});
   const [readDone, setReadDone] = useState<Record<string, boolean>>({});
   const [quizDone, setQuizDone] = useState<Record<string, boolean>>({});
@@ -113,11 +97,9 @@ export function ChunkReader({
   const FONT_SIZE_MAX = 28;
   const FONT_SIZE_STEP = 2;
 
-  const sortedBooks = [...allBookNames].sort((a, b) => {
-    const ai = BIBLE_BOOK_ORDER.indexOf(a);
-    const bi = BIBLE_BOOK_ORDER.indexOf(b);
-    return (ai >= 0 ? ai : 999) - (bi >= 0 ? bi : 999);
-  });
+  const sortedBooks = [...allBookNames].sort(
+    (a, b) => bibleBookSortIndex(a) - bibleBookSortIndex(b),
+  );
 
   useEffect(() => {
     setDark(document.documentElement.classList.contains("dark"));
@@ -138,28 +120,43 @@ export function ChunkReader({
     });
   }, []);
 
+  const updateChapterStripJustify = useCallback(() => {
+    const node = chapterStripRef.current;
+    if (!node) return;
+    const overflows = node.scrollWidth > node.clientWidth;
+    setChapterStripJustify(overflows ? "flex-start" : "center");
+  }, []);
+
+  useLayoutEffect(() => {
+    updateChapterStripJustify();
+    const node = chapterStripRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => updateChapterStripJustify());
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, [
+    bookName,
+    chapterNumbers,
+    chapterTimestamps,
+    mode,
+    quizDone,
+    readDone,
+    updateChapterStripJustify,
+  ]);
+
   useEffect(() => {
     const el = activeChapterRef.current;
-    if (el) {
+    const container = chapterStripRef.current;
+    if (!container) return;
+
+    if (chapterNumber <= 5) {
+      // For chapters 1-5, scroll to the start
+      container.scrollLeft = 0;
+    } else if (el) {
+      // For chapters 6+, center the active chapter
       el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
     }
-  }, [chapterNumber]);
-
-  // Diagnostic: log computed overflow of every ancestor so we can identify what clips the strip
-  useEffect(() => {
-    if (!chapterStripRef.current) return;
-    let node: HTMLElement | null = chapterStripRef.current.parentElement;
-    const lines: string[] = [];
-    while (node) {
-      const s = window.getComputedStyle(node);
-      lines.push(
-        `<${node.tagName.toLowerCase()} class="${node.className.slice(0, 80)}">` +
-        `  overflow=${s.overflow}  overflowX=${s.overflowX}  overflowY=${s.overflowY}  contain=${s.contain}`
-      );
-      node = node.parentElement;
-    }
-    console.log("[chapter-strip ancestors]\n" + lines.join("\n"));
-  }, []);
+  }, [bookName, chapterNumber, chapterStripJustify]);
 
   function toggleTheme() {
     const next = !dark;
@@ -456,7 +453,7 @@ export function ChunkReader({
             marginRight: "-16px",
             paddingLeft: "16px",
             paddingRight: "16px",
-            justifyContent: "center",
+            justifyContent: chapterStripJustify,
             WebkitOverflowScrolling: "touch",
             scrollbarWidth: "none",
             msOverflowStyle: "none",

@@ -8,7 +8,7 @@ export default function Home() {
       <nav className="flex items-center justify-between px-6 py-4">
         <Logo />
         <Link
-          href="/login?next=/try"
+          href="/login?next=/try/bible/start"
           className="text-sm font-medium text-gray-600 hover:text-emerald-600 dark:text-gray-400 dark:hover:text-emerald-400"
         >
           Sign in
@@ -26,7 +26,7 @@ export default function Home() {
           </p>
           <div className="mt-10 inline-flex flex-col items-center self-start">
             <Link
-              href="/try"
+              href="/try/bible/start"
               className="w-fit inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-700 hover:shadow-xl hover:shadow-emerald-500/30 active:scale-[0.98]"
             >
               Start Reading

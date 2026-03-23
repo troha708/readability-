@@ -16,29 +16,7 @@ import {
 import { AuthButton } from "@/components/auth-button";
 import { Logo } from "@/components/logo";
 import { useUser } from "@/hooks/useUser";
-
-const OT_BOOK_ORDER = [
-  "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
-  "Joshua", "Judges", "Ruth", "1 Samuel", "2 Samuel",
-  "1 Kings", "2 Kings", "1 Chronicles", "2 Chronicles",
-  "Ezra", "Nehemiah", "Esther", "Job", "Psalms", "Proverbs",
-  "Ecclesiastes", "Song Of Solomon", "Isaiah", "Jeremiah",
-  "Lamentations", "Ezekiel", "Daniel", "Hosea", "Joel", "Amos",
-  "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk", "Zephaniah",
-  "Haggai", "Zechariah", "Malachi",
-];
-
-const NT_READING_ORDER = [
-  "John", "Acts", "Luke", "Mark", "Matthew",
-  "Romans", "1 Corinthians", "2 Corinthians", "Galatians",
-  "Ephesians", "Philippians", "Colossians",
-  "1 Thessalonians", "2 Thessalonians", "1 Timothy", "2 Timothy",
-  "Titus", "Philemon", "Hebrews", "James",
-  "1 Peter", "2 Peter", "1 John", "2 John", "3 John",
-  "Jude", "Revelation",
-];
-
-const BIBLE_BOOK_ORDER = [...OT_BOOK_ORDER, ...NT_READING_ORDER];
+import { bibleBookSortIndex } from "@/lib/bible-book-order";
 
 type ChapterInfo = { chapterNumber: number; chunkCount: number };
 
@@ -52,11 +30,6 @@ type Props = {
   books: BookInfo[];
   versionAbbr: string;
 };
-
-function bookSortKey(name: string): number {
-  const idx = BIBLE_BOOK_ORDER.indexOf(name);
-  return idx >= 0 ? idx : 999;
-}
 
 type CompletionAge = "recent" | "fading" | "old";
 
@@ -136,7 +109,9 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
         return !!readProg[key] && !!quizProg[key];
       };
 
-      const sorted = [...books].sort((a, b) => bookSortKey(a.name) - bookSortKey(b.name));
+      const sorted = [...books].sort(
+        (a, b) => bibleBookSortIndex(a.name) - bibleBookSortIndex(b.name),
+      );
 
       let lastActiveBook: BookInfo | null = null;
       for (const book of sorted) {
@@ -168,7 +143,9 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
     init();
   }, [books]);
 
-  const sorted = [...books].sort((a, b) => bookSortKey(a.name) - bookSortKey(b.name));
+  const sorted = [...books].sort(
+    (a, b) => bibleBookSortIndex(a.name) - bibleBookSortIndex(b.name),
+  );
   const otBooks = sorted.filter((b) => b.testament === "OT");
   const ntBooks = sorted.filter((b) => b.testament === "NT");
 
@@ -426,7 +403,7 @@ export function BibleRoadmap({ books, versionAbbr }: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
             </svg>
             <p className="text-sm text-blue-700 dark:text-blue-300">
-              <Link href="/login?next=/try" className="font-medium underline hover:no-underline">
+              <Link href="/login?next=/try/bible/start" className="font-medium underline hover:no-underline">
                 Sign in
               </Link>{" "}
               to save your progress across devices
