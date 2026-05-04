@@ -136,6 +136,7 @@ export default async function BibleReadPage({ searchParams }: Props) {
 
   return (
     <ChunkReader
+      key={`${bookName}-${chapterNum}`}
       bookName={bookName}
       initialChapterNumber={chapterNum}
       initialChunkTexts={chunkTexts}

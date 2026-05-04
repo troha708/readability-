@@ -217,6 +217,10 @@ export function ChunkReader({
   // Track loaded chapter numbers to prevent duplicates
   const loadedChapterNums = useRef<Set<number>>(new Set([initialChapterNumber]));
   const loadingRef = useRef(false);
+  const [loadingPrev, setLoadingPrev] = useState(false);
+  const loadingPrevRef = useRef(false);
+  const topSentinelRef = useRef<HTMLDivElement>(null);
+  const pendingScrollAdjust = useRef<number | null>(null);
 
   // Progress for chapter strip coloring
   const [chapterTimestamps, setChapterTimestamps] = useState<Record<string, string>>({});
@@ -313,6 +317,19 @@ export function ChunkReader({
     }
   }, [visibleChapterNumber, chapterStripJustify]);
 
+  // Restore scroll position after a chapter is prepended above.
+  // Also resets loadingPrevRef here (not in finally) so the IntersectionObserver
+  // cannot cascade another load before the scroll adjustment settles.
+  useLayoutEffect(() => {
+    if (pendingScrollAdjust.current !== null) {
+      const prevHeight = pendingScrollAdjust.current;
+      const newHeight = document.documentElement.scrollHeight;
+      window.scrollBy(0, newHeight - prevHeight);
+      pendingScrollAdjust.current = null;
+      loadingPrevRef.current = false;
+    }
+  }, [loadedChapters]);
+
   // ── Close dropdowns on outside click ─────────────────────
 
   useEffect(() => {
@@ -393,6 +410,59 @@ export function ChunkReader({
     },
     [bookName, chapterNumbers, versionAbbr],
   );
+
+  const loadPrevChapter = useCallback(async () => {
+    if (loadingPrevRef.current) return;
+    const firstLoadedNum = Math.min(...Array.from(loadedChapterNums.current));
+    const idx = chapterNumbers.indexOf(firstLoadedNum);
+    if (idx <= 0) return;
+    const prevNum = chapterNumbers[idx - 1];
+    if (loadedChapterNums.current.has(prevNum)) return;
+
+    loadingPrevRef.current = true;
+    loadedChapterNums.current.add(prevNum);
+    setLoadingPrev(true);
+
+    try {
+      const res = await fetch(
+        `/api/chapter?book=${encodeURIComponent(bookName)}&chapter=${prevNum}&version=${versionAbbr}`,
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      pendingScrollAdjust.current = document.documentElement.scrollHeight;
+      setLoadedChapters((prev) => [
+        {
+          chapterNumber: prevNum,
+          chunkTexts: data.chunks ?? [],
+          questions: data.questions ?? [],
+          explanations: data.explanations ?? null,
+        },
+        ...prev,
+      ]);
+    } finally {
+      // If a scroll adjustment is pending (success path), keep loadingPrevRef = true
+      // so the observer cannot fire again before useLayoutEffect resets it.
+      // On the error path (pendingScrollAdjust was never set), reset here.
+      if (pendingScrollAdjust.current === null) {
+        loadingPrevRef.current = false;
+      }
+      setLoadingPrev(false);
+    }
+  }, [bookName, chapterNumbers, versionAbbr]);
+
+  // Load previous chapter when top sentinel becomes visible
+  useEffect(() => {
+    const el = topSentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) void loadPrevChapter();
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadPrevChapter]);
 
   // ── Chapter section callbacks ─────────────────────────────
 
@@ -689,6 +759,13 @@ export function ChunkReader({
       {/* Continuous chapter content */}
       <div className="px-4 py-10">
         <div className="mx-auto max-w-2xl">
+          {/* Top sentinel — triggers loading the previous chapter on scroll */}
+          <div ref={topSentinelRef} className="h-1" />
+          {loadingPrev && (
+            <div className="flex items-center justify-center py-6">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+            </div>
+          )}
           {loadedChapters.map((ch) => (
             <ChapterSection
               key={ch.chapterNumber}
