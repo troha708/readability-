@@ -4,12 +4,37 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { ChunkReader } from "./chunk-reader";
 import type { ExplanationPassage } from "./format-chunk-text";
+import type { QuizQuestion } from "./inline-quiz";
+
+type RawQuestion = {
+  id: string;
+  type: string;
+  question: string;
+  options?: string[];
+  answer?: string;
+  correct?: string;
+  verse_reference?: string;
+  verse_ref?: string;
+};
+
+function normalizeQuestion(raw: RawQuestion): QuizQuestion {
+  const typeMap: Record<string, QuizQuestion["type"]> = {
+    fill_in_the_blank: "fill_blank",
+  };
+  return {
+    id: raw.id,
+    type: (typeMap[raw.type] ?? raw.type) as QuizQuestion["type"],
+    question: raw.question,
+    options: raw.options,
+    answer: String(raw.answer ?? raw.correct ?? ""),
+    verse_reference: raw.verse_reference ?? raw.verse_ref ?? "",
+  };
+}
 
 type Props = {
   searchParams: Promise<{
     book?: string;
     chapter?: string;
-    chunk?: string;
     version?: string;
   }>;
 };
@@ -18,7 +43,6 @@ export default async function BibleReadPage({ searchParams }: Props) {
   const params = await searchParams;
   const bookName = params.book ?? "John";
   const chapterNum = parseInt(params.chapter ?? "1", 10);
-  const chunkNum = parseInt(params.chunk ?? "1", 10);
   const versionAbbr = params.version ?? "WEB";
 
   const supabase = await createClient();
@@ -45,7 +69,6 @@ export default async function BibleReadPage({ searchParams }: Props) {
 
   if (!book) notFound();
 
-  // Fetch all chapter numbers for this book + translation (for the chapter picker)
   const { data: chaptersForBook } = await supabase
     .from("chapters")
     .select("chapter_number")
@@ -55,7 +78,6 @@ export default async function BibleReadPage({ searchParams }: Props) {
 
   const chapterNumbers = chaptersForBook?.map((c) => c.chapter_number) ?? [];
 
-  // Fetch all book names for the book selector dropdown
   const { data: allBooksData } = await supabase
     .from("books")
     .select("name");
@@ -72,59 +94,60 @@ export default async function BibleReadPage({ searchParams }: Props) {
 
   if (!chapter) notFound();
 
-  const { data: chunk } = await supabase
+  // Fetch ALL chunks for this chapter
+  const { data: chunks } = await supabase
     .from("chunks")
-    .select("id, text, chunk_number")
+    .select("text, chunk_number")
     .eq("chapter_id", chapter.id)
-    .eq("chunk_number", chunkNum)
-    .single();
+    .order("chunk_number");
 
-  if (!chunk) notFound();
+  const chunkTexts = chunks?.map((c) => c.text) ?? [];
 
-  const { count: chunksInChapter } = await supabase
-    .from("chunks")
-    .select("*", { count: "exact", head: true })
-    .eq("chapter_id", chapter.id);
+  // Load questions from disk
+  let questions: QuizQuestion[] = [];
+  const slug = bookName.toLowerCase().replace(/ /g, "-");
+  const questionsDir = join(process.cwd(), "data", "questions", bookName);
+  for (const fileName of [`${slug}-${chapterNum}.json`, `chapter_${chapterNum}.json`]) {
+    try {
+      const raw = readFileSync(join(questionsDir, fileName), "utf-8");
+      questions = (JSON.parse(raw).questions ?? []).map(normalizeQuestion);
+      break;
+    } catch {
+      // try next candidate
+    }
+  }
 
-  const hasNextChunk = (chunksInChapter ?? 0) > chunkNum;
-
+  // Load explanations from disk
   let explanations: ExplanationPassage[] | null = null;
   try {
-    const slug = bookName.toLowerCase();
     const explanationPath = join(
       process.cwd(),
       "data",
       "explanations",
-      slug,
-      `${slug}-${chapterNum}-explanations.json`,
+      bookName.toLowerCase(),
+      `${bookName.toLowerCase()}-${chapterNum}-explanations.json`,
     );
     if (existsSync(explanationPath)) {
-      const raw = readFileSync(explanationPath, "utf-8");
-      explanations = JSON.parse(raw).passages ?? null;
+      explanations = JSON.parse(readFileSync(explanationPath, "utf-8")).passages ?? null;
     }
   } catch {
-    // no explanation data for this chapter
+    // no explanations for this chapter
   }
 
   return (
     <ChunkReader
       bookName={bookName}
-      chapterNumber={chapterNum}
-      chunkNumber={chunkNum}
-      totalChunks={chunksInChapter ?? 1}
-      chunkText={chunk.text}
-      hasNextChunk={hasNextChunk}
+      initialChapterNumber={chapterNum}
+      initialChunkTexts={chunkTexts}
+      initialQuestions={questions}
+      initialExplanations={explanations}
       versionAbbr={translation.abbreviation}
       versionName={translation.name}
       availableVersions={
-        allTranslations?.map((t) => ({
-          abbr: t.abbreviation,
-          name: t.name,
-        })) ?? []
+        allTranslations?.map((t) => ({ abbr: t.abbreviation, name: t.name })) ?? []
       }
       chapterNumbers={chapterNumbers}
       allBookNames={allBookNames}
-      explanations={explanations}
     />
   );
 }
